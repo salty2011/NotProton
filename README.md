@@ -32,6 +32,13 @@ profile for this game. Explicit renderer configuration takes precedence.
 Startup-video playback still stutters in the tested Wine media pipeline,
 affecting both video and audio; gameplay audio has been confirmed smooth.
 
+Fallout 76 exposes a missing `GLOBALROOT` Windows path behavior in the packaged
+Sikarugir engine. A separate [source-built free runtime candidate](runtime/README.md)
+fixes that startup exception and passes 32/64-bit namespace, Steam bridge and
+HTTPS probes. Menu, networking and gameplay validation remain pending; the
+candidate is not installed by **Set Up Free Runner**. Track qualification in
+the [game acceptance matrix](docs/research/game-compatibility-matrix.md).
+
 The existing paid runner supports **CrossOver 26.3** and **CrossOver Preview
 20261006 (27.0.0.41069) or 20260821 (27.0.0.40921)**. The Preview FEX and Rosetta
 builds remain supported; Sikarugir currently uses Rosetta.
