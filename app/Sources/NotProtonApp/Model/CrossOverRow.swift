@@ -69,13 +69,13 @@ struct CrossOverRow: Identifiable, Equatable {
             }
         }
 
-        let copies = installed.filter { $0.provider == .crossOver }.map(\.id) + damaged.filter { !$0.hasPrefix("sikarugir-") }
+        let copies = installed.filter { $0.provider == .crossOver }.map(\.id) + damaged.filter { !SupportPaths.isFreeBuild($0) }
         for build in copies where seen.insert(build).inserted {
             rows.append(CrossOverRow(
                 buildID: build, install: nil, copy: copy(of: build), licensed: nil, unsupportedVersion: nil
             ))
         }
-        for build in orphaned.filter({ !$0.hasPrefix("sikarugir-") }) where seen.insert(build).inserted {
+        for build in orphaned.filter({ !SupportPaths.isFreeBuild($0) }) where seen.insert(build).inserted {
             rows.append(CrossOverRow(
                 buildID: build, install: nil, copy: .unsupported, licensed: nil, unsupportedVersion: nil
             ))

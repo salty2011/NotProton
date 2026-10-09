@@ -43,7 +43,7 @@ enum SupportPaths {
     static var toolList: URL { support.appending(path: "tools") }
 
     static func runnerRoot(forBuild build: String, runners: URL = SupportPaths.runners) -> URL {
-        runners.appending(path: build.hasPrefix("sikarugir-") ? build : "crossover-\(build)")
+        runners.appending(path: isFreeBuild(build) ? build : "crossover-\(build)")
     }
 
     static func crossOverRoot(inBundle bundle: URL) -> URL {
@@ -52,7 +52,7 @@ enum SupportPaths {
 
     static func clonedRoot(forBuild build: String, runners: URL = SupportPaths.runners) -> URL {
         runnerRoot(forBuild: build, runners: runners)
-            .appending(path: build.hasPrefix("sikarugir-") ? "Wine" : "CrossOver")
+            .appending(path: isFreeBuild(build) ? "Wine" : "CrossOver")
     }
 
     static func prefixTemplates(forBuild build: String, in library: SteamLibrary) -> [URL] {
@@ -60,7 +60,11 @@ enum SupportPaths {
     }
 
     static func prefixTemplate(forBuild build: String, flavor: CompatTool.Flavor, in library: SteamLibrary) -> URL {
-        library.compatdata.appending(path: prefixTemplateFolder).appending(path: "\(build.hasPrefix("sikarugir-") ? build : "crossover-\(build)")-\(flavor.unixDir)")
+        library.compatdata.appending(path: prefixTemplateFolder).appending(path: "\(isFreeBuild(build) ? build : "crossover-\(build)")-\(flavor.unixDir)")
+    }
+
+    static func isFreeBuild(_ build: String) -> Bool {
+        build.hasPrefix("sikarugir-") || build.hasPrefix("freewine-")
     }
 
     static let prefixTemplateFolder = "notproton-template"

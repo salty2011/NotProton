@@ -178,7 +178,9 @@ Runtime execution is the leading area to investigate from the observed failure. 
 
 The branch is rebased onto upstream **1.1.3**. Changes remain fork-only. The
 application was rebuilt and strictly code-signature verified; the installed
-review application is still 1.1.2 pending deployment and visible checks.
+review application and Steam components are now installed as 1.1.3. A managed
+experimental source engine is imported; Steam selection and visible game checks
+remain pending.
 
 The original Fallout crash is now diagnosed. The packaged Sikarugir engine fails
 to open its executable through `\\.\GLOBALROOT\??\S:\...`, returning
@@ -205,18 +207,20 @@ overlay because the development DXMT in the packaged template expects a newer
 macOS surface API. No paid CrossOver binaries, D3DMetal or FEX are required.
 The [developer build recipe](../../runtime/README.md) records inputs and licensing
 and keeps this candidate separate from the installed Sikarugir runner. Normal
-installer integration and a self-contained release package remain unfinished.
+installer integration now preserves the engine’s matching Unix bridge, copies
+its dependencies, and registers a separate opt-in Steam tool. A self-contained
+release package remains unfinished.
 
 Two broadly applicable NotProton fixes are implemented: Wine's process status
 and explicit unhandled exceptions now produce a launch failure instead of a
 false zero-status result; the Steam graphics panel recognizes named, legacy and
 inherited free tools, hides unavailable D3DMetal, and sends Automatic DLSS options
 to DXMT. Paid-tool behavior is retained. The complete Swift suite passes
-**484 tests across 57 suites**, including pinned-archive installation checks;
+**488 tests across 58 suites**, including pinned-archive installation checks;
 affected native compatibility and panel fixture/behavior checks also pass.
 Actual Steam UI rendering still needs a visible check.
 
-Remaining priority order: qualify and integrate the source runtime with rollback;
+Remaining priority order: finish visible qualification of the managed source runtime;
 retest AoE and Fallout from cloned prefixes; add reusable profiles and dependency
 recipes where evidence requires them; investigate video/audio timing; broaden
 controller/overlay/long-session coverage. Free D3D12 and native ARM/FEX remain

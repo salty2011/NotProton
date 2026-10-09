@@ -357,6 +357,22 @@ struct StatusView: View {
                     ) { Task { await status.setUpSikarugir() } },
                     menu: ready ? [removeCopyAction(free.id, label: "Remove Copy\u{2026}")] : []
                 )
+                let sourceBuild = FreeWineInstaller.build
+                let sourcePresent = snapshot.installedRunners.contains { $0.id == sourceBuild.id }
+                    || snapshot.damagedRunners.contains(sourceBuild.id)
+                let sourceReady = sourcePresent && !Self.needsRepair(snapshot.runner, build: sourceBuild.id)
+                    && !snapshot.damagedRunners.contains(sourceBuild.id)
+                StatusRow(
+                    title: "Experimental Free Wine",
+                    value: sourceReady ? "Source runtime ready." : sourcePresent ? "Remove this damaged copy, then reimport the qualified build." : "Import the qualified local Wine 26.3 build.",
+                    tone: sourceReady ? .ok : .neutral,
+                    detail: "Separate from Sikarugir. Broader game compatibility is still being tested.",
+                    action: sourcePresent ? nil : StatusAction(label: "Import Build\u{2026}",
+                        isEnabled: status.canInstall && snapshot.payload.steamComponentsComplete) {
+                            Task { await status.importFreeWine() }
+                        },
+                    menu: sourcePresent ? [removeCopyAction(sourceBuild.id, label: "Remove Copy\u{2026}")] : []
+                )
                 crossOverSection(snapshot)
             } header: {
                 Text("Compatibility Tools")

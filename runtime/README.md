@@ -3,8 +3,8 @@
 This developer recipe builds a separate Rosetta Wine candidate from CodeWeavers'
 public CrossOver 26.3 FOSS source. It requires no paid CrossOver installation or
 proprietary runtime. It reuses the installed, pinned Sikarugir libraries, Mono
-and Gecko. The packaged Sikarugir runner remains the installed default until the
-candidate passes the game acceptance checks.
+and Gecko. The packaged Sikarugir runner remains the default. The experimental engine
+can be imported as a separate Steam tool for explicit per-game testing.
 
 Sikarugir 11.0 revision 1 cannot open `\\.\GLOBALROOT\??\` paths. Fallout 76 opens
 its own executable through that namespace and subsequently crashes. The public
@@ -29,8 +29,9 @@ with the packaged runner's Unix bridge.
 
 DXMT is an overlay through `WINEDLLPATH_PREPEND`, preserving Wine's builtin D3D
 DLLs. No D3DMetal, `libd3dshared`, FEX or paid compatibility database is included.
-Normal NotProton installer integration and Steam renderer controls for this
-source candidate remain pending. This recipe is not a qualified replacement.
+NotProton imports the qualified build as a managed, separate Steam tool. It
+preserves the engine’s matching Unix bridge during app updates and uses the
+selected renderer’s builtin overlay. This is not a fully qualified replacement.
 
 ## Build
 
@@ -64,6 +65,37 @@ On 9 October 2026, a clean source tree built successfully through this recipe.
 That output passed all six 32/64-bit namespace, HTTPS and native Steam bridge
 probes. Fallout's original exception was absent in its 45-second startup replay,
 and a D3D11 feature-level 11_1 device initialized. Menu/gameplay remain pending.
+
+## Import and select
+
+The current review build accepts the exact locally qualified binaries identified
+by `SupportedRunners.freeWine` and `FreeWineInstaller.binaryHashes`. A different
+compilation needs a new identity and qualification; a self-authored manifest
+alone does not authorize arbitrary binaries. The recipe is not byte reproducible.
+
+In NotProton, use **Experimental Free Wine → Import Build…** and select
+`<work>/wine-built`. Keep the official renderer at the recipe’s adjacent
+`<work>/dxmt-v0.80/v0.80` path. Sikarugir must be ready when importing: its pinned
+libraries and renderers are copied into the managed engine, including materializing
+library symlinks. Subsequent use does not depend on retaining that Sikarugir copy.
+
+Restart Steam after the tool is registered. For a test game, select
+**Free Wine 26.3 revision 1 (Experimental)** in Steam’s Compatibility properties.
+Start with Automatic (DXMT), which passed the source replay. DXVK and WineD3D
+selection is implemented but has not yet been qualified with this source engine.
+Importing does not change existing game mappings or the default compatibility tool.
+
+Before changing an existing prefix’s engine, stop its matching wineserver and
+back up the entire compatdata directory. To roll back, stop the source engine,
+reselect the previous Steam tool, and restore the prefix backup if required.
+Re-selecting a tool alone does not undo Wine’s prefix updates. NotProton’s
+**Remove Copy** action removes the managed engine; select another tool for any
+mapped games before removing it. A damaged source copy must be removed and
+reimported, rather than repaired using generic engine binaries.
+
+The review app and managed engine were installed on 10 October 2026. Steam
+selection and visible Fallout menu/gameplay checks remain pending in the
+[acceptance matrix](../docs/research/game-compatibility-matrix.md).
 
 ## Validate
 

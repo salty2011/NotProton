@@ -311,6 +311,11 @@ struct NtdllPatcherTests {
     func patchesMatchRecordedArches() {
         for build in SupportedRunners.all {
             let patched = Set(NtdllPatcher.patches(for: build).map(\.arch))
+            if build.provider == .freeWine {
+                #expect(patched.isEmpty)
+                #expect(build.cleanNtdll == build.patchedNtdll)
+                continue
+            }
             #expect(patched == Set(build.cleanNtdll.keys))
             #expect(patched == Set(build.patchedNtdll.keys))
             for arch in patched {
@@ -427,14 +432,14 @@ struct NtdllPatcherTests {
         try NtdllPatcher.stage(build: build, runnerRoot: root, bridge: scratch)
 
         var compared: [WineArch] = []
-        for patch in NtdllPatcher.patches(for: build) {
-            let staged = NtdllPatcher.stagedCopy(of: patch.arch, build: build.id, in: scratch)
-            let existing = NtdllPatcher.stagedCopy(of: patch.arch, build: build.id)
+        for arch in build.patchedNtdll.keys {
+            let staged = NtdllPatcher.stagedCopy(of: arch, build: build.id, in: scratch)
+            let existing = NtdllPatcher.stagedCopy(of: arch, build: build.id)
 
-            #expect(Digest.sha256IfPresent(staged) == build.patchedNtdll[patch.arch])
+            #expect(Digest.sha256IfPresent(staged) == build.patchedNtdll[arch])
             guard let live = Digest.sha256IfPresent(existing) else { continue }
             #expect(Digest.sha256IfPresent(staged) == live)
-            compared.append(patch.arch)
+            compared.append(arch)
         }
 
         // A staged bridge that matched nothing is a test that skipped. Asked per build rather
@@ -456,10 +461,11 @@ struct NtdllPatcherTests {
             let scratch = URL(filePath: NSTemporaryDirectory()).appending(path: "notproton-stage-\(UUID().uuidString)")
             defer { try? fm.removeItem(at: scratch) }
 
-            // One file per patch the build defines. A build pins the arches its loader can map,
+            // One file per hooked architecture, including hooks compiled from source.
+            // A build pins the arches its loader can map,
             // never all of WineArch: an x86_64 loader has no aarch64 guest.
             let first = try NtdllPatcher.stage(build: build, runnerRoot: root, bridge: scratch)
-            #expect(first.count == NtdllPatcher.patches(for: build).count)
+            #expect(first.count == build.patchedNtdll.count)
 
             let second = try NtdllPatcher.stage(build: build, runnerRoot: root, bridge: scratch)
             #expect(second.isEmpty)

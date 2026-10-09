@@ -264,6 +264,25 @@ final class SystemStatus {
         }
     }
 
+    func importFreeWine() async {
+        guard canInstall, snapshot?.payload.steamComponentsComplete == true else { return }
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.prompt = "Import"
+        panel.message = "Select the qualified experimental Wine build's wine-built folder."
+        guard panel.runModal() == .OK, let source = panel.url else { return }
+        await perform(from: FreeWineInstaller.step) { progress in
+            let lock = try DeploymentContent.acquireInstallationLock(for: SupportPaths.Steam.app)
+            defer { close(lock) }
+            try await requireUnblockedContent()
+            let result = try await FreeWineInstaller.run(from: source, report: progress)
+            let message = "Experimental Free Wine imported. Select it for a game in Steam Compatibility settings."
+            return result.toolsChanged && SteamBundle.isRunning ? "\(message) \(Self.toolsRestartHint)" : message
+        }
+    }
+
     func addCrossOver() async {
         let panel = NSOpenPanel()
         panel.canChooseFiles = true

@@ -130,6 +130,9 @@ enum DeploymentContent {
                  name: "\($0.name)/run", executable: true)
         }
         for build in Set(tools.map(\.build)).sorted() {
+            // Source runtimes carry a Unix bridge compiled against their own
+            // ntdll. An app update must not deploy the generic bridge over it.
+            if SupportedRunners.build(id: build)?.provider == .freeWine { continue }
             let root = SupportPaths.clonedRoot(forBuild: build, runners: runners)
             for builtin in RunnerPatcher.builtins(in: root) {
                 let path = "\(builtin.arch)/\(builtin.name)"
@@ -172,6 +175,12 @@ enum DeploymentContent {
             files.append((list, Digest.sha256(of: Data(CompatToolList.contents(tools).utf8)), "tools"))
         }
         for build in RunnerStore.installedBuilds(in: runners) {
+            let root = SupportPaths.clonedRoot(forBuild: build.id, runners: runners)
+            if build.provider == .freeWine {
+                for (path, hash) in FreeWineInstaller.binaryHashes {
+                    files.append((root.appending(path: path), hash, "\(build.id)/\(path)"))
+                }
+            }
             for (arch, hash) in build.patchedNtdll {
                 let file = SupportPaths.clonedRoot(forBuild: build.id, runners: runners)
                     .appending(path: "lib/wine/\(arch.rawValue)/ntdll.dll")

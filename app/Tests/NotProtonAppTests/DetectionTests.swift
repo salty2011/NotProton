@@ -25,9 +25,9 @@ struct SupportedRunnerTests {
                 expectSHA256(clean, "clean \(arch.rawValue)")
                 expectSHA256(patched ?? "", "patched \(arch.rawValue)")
 
-                // A patch that produced its own input would mean the patcher did
-                // nothing, and the launch path would silently run stock ntdll.
-                #expect(clean != patched)
+                // Binary detours must change the input. Source builds already
+                // embed their hook, so staging must preserve their pinned bytes.
+                #expect(build.provider == .freeWine ? clean == patched : clean != patched)
             }
         }
     }

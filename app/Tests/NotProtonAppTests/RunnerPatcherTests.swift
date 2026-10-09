@@ -10,7 +10,7 @@ struct RunnerPatcherTests {
     // meets the pinned hashes. An APFS clone costs a second and leaves the real one alone.
     private static func healthyClone() throws -> (root: URL, build: RunnerBuild)? {
         guard let build = RunnerStore.installedBuilds().first(where: {
-            RunnerPatcher.verify(build: $0, root: SupportPaths.clonedRoot(forBuild: $0.id)).isEmpty
+            $0.provider != .freeWine && RunnerPatcher.verify(build: $0, root: SupportPaths.clonedRoot(forBuild: $0.id)).isEmpty
         }) else { return nil }
         let live = SupportPaths.clonedRoot(forBuild: build.id)
 

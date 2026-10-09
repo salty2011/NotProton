@@ -42,7 +42,9 @@ enum RunnerPatcher {
     ) throws -> Outcome {
         var outcome = Outcome()
         outcome.ntdll = try installNtdll(build: build, root: root, bridge: bridge)
-        outcome.builtins = try installBuiltins(root: root, bridge: bridge)
+        if build.provider != .freeWine {
+            outcome.builtins = try installBuiltins(root: root, bridge: bridge)
+        }
         outcome.loaders = try grantLoaderEntitlement(root: root, provider: build.provider)
         return outcome
     }
@@ -52,6 +54,7 @@ enum RunnerPatcher {
     ) -> [String] {
         var wrong: [String] = []
         if build.provider == .sikarugir { wrong += SikarugirInstaller.problems(in: root) }
+        if build.provider == .freeWine { wrong += FreeWineInstaller.problems(in: root) }
         for arch in WineArch.allCases {
             guard let expected = build.patchedNtdll[arch] else { continue }
             let live = root.appending(path: "lib/wine/\(arch.rawValue)/ntdll.dll")
@@ -73,7 +76,7 @@ enum RunnerPatcher {
 
             let staged = Digest.sha256IfPresent(
                 bridge.appending(path: "\(builtin.arch)/\(builtin.name)"))
-            if let staged, staged != installed {
+            if build.provider != .freeWine, let staged, staged != installed {
                 wrong.append("\(builtin.arch)/\(builtin.name) is out of date")
             }
         }
@@ -151,7 +154,7 @@ enum RunnerPatcher {
             if existing?.contains(dyldEntitlement) == true,
                signatureIsValid(signingTarget(for: loader)) { continue }
 
-            guard provider == .sikarugir || (existing?.isEmpty == false) else {
+            guard provider != .crossOver || (existing?.isEmpty == false) else {
                 throw StepFailure(
                     step: step,
                     detail: "\(name(of: loader)) carries no entitlements to extend."
@@ -208,7 +211,7 @@ enum RunnerPatcher {
         _ = try Shell.run("/usr/libexec/PlistBuddy", [
             "-c", "Add :\(dyldEntitlement) bool true", plist.path(percentEncoded: false),
         ])
-        if provider == .sikarugir {
+        if provider != .crossOver {
             for key in ["allow-jit", "allow-unsigned-executable-memory", "disable-library-validation"] {
                 _ = try Shell.run("/usr/libexec/PlistBuddy", [
                     "-c", "Add :com.apple.security.cs.\(key) bool true", plist.path(percentEncoded: false),

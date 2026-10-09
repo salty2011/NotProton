@@ -649,6 +649,22 @@ enum NtdllPatcher {
     ) throws -> [WineArch] {
         var written: [WineArch] = []
 
+        if build.provider == .freeWine {
+            // The source-built loader already contains the Steam hook.
+            // Stage its verified binaries instead of applying PE detours.
+            for (arch, expected) in build.patchedNtdll {
+                let source = runnerRoot.appending(path: "lib/wine/\(arch.rawValue)/ntdll.dll")
+                guard Digest.sha256IfPresent(source) == expected else {
+                    throw StepFailure(step: step, detail: "Source runtime \(arch.rawValue) ntdll does not match the qualified build.")
+                }
+                let destination = stagedCopy(of: arch, build: build.id, in: bridge)
+                if Digest.sha256IfPresent(destination) == expected { continue }
+                try atomicReplace(destination, with: Data(contentsOf: source), step: step)
+                written.append(arch)
+            }
+            return written
+        }
+
         for patch in patches(for: build) {
             let destination = stagedCopy(of: patch.arch, build: build.id, in: bridge)
 

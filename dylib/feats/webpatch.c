@@ -187,7 +187,7 @@ static int out_expand(np_out_t *o, const char *replace, const np_cap_t *caps) {
     ARG "=>{" \
     "const t=" ARG ".details,o=t.strLaunchOptions||\"\"," \
     "tn=t.strCompatToolName||\"" NP_FALLBACK_TOOL "\"," \
-    "fr=tn===\"notproton-sikarugir\"||(tn===\"notproton\"&&" NP_LEGACY_FREE ")," \
+    "fr=tn===\"notproton-sikarugir\"||tn===\"notproton-freewine\"||(tn===\"notproton\"&&" NP_LEGACY_FREE ")," \
     NP_CX_LAUNCH_PARSE \
     "g=k=>{const p=E.e.filter(w=>o.startsWith(k+\"=\",w.start)).pop();" \
     "return p?(p.value===null?o.slice(p.start+k.length+1,p.end):p.value.slice(k.length+1)):\"\"}," \

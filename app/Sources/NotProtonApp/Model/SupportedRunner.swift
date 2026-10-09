@@ -12,7 +12,7 @@ enum WineArch: String, Sendable, CaseIterable {
 }
 
 enum RunnerProvider: String, Sendable {
-    case crossOver, sikarugir
+    case crossOver, sikarugir, freeWine
 }
 
 struct RunnerBuild: Sendable, Equatable, Identifiable {
@@ -39,6 +39,7 @@ struct RunnerBuild: Sendable, Equatable, Identifiable {
 
     var id: String {
         if provider == .sikarugir { return "sikarugir-\(bundleVersion)" }
+        if provider == .freeWine { return "freewine-\(bundleVersion)" }
         return flavor.map { "\(bundleVersion)-\($0)" } ?? bundleVersion
     }
 
@@ -55,7 +56,11 @@ struct RunnerBuild: Sendable, Equatable, Identifiable {
     var flavorName: String { flavor?.uppercased() ?? "Rosetta" }
 
     var displayVersion: String {
-        provider == .sikarugir ? "Sikarugir \(releaseVersion) (Rosetta)" : "\(releaseVersion) \(flavorName)"
+        switch provider {
+        case .sikarugir: "Sikarugir \(releaseVersion) (Rosetta)"
+        case .freeWine: "Free Wine \(releaseVersion) (experimental, Rosetta)"
+        case .crossOver: "\(releaseVersion) \(flavorName)"
+        }
     }
 }
 
@@ -98,7 +103,7 @@ enum SupportedRunners {
     // First entry is what windows-only games get when Steam has no mapping.
     static let toolPreference = [
         legacyToolName, "notproton-fex", "notproton-fex-rosetta", "notproton-preview",
-        "notproton-fex-41069", "notproton-fex-rosetta-41069", "notproton-preview-41069", "notproton-26.3", "notproton-sikarugir",
+        "notproton-fex-41069", "notproton-fex-rosetta-41069", "notproton-preview-41069", "notproton-26.3", "notproton-sikarugir", "notproton-freewine",
     ]
 
     static let legacyToolName = "notproton"
@@ -132,6 +137,22 @@ enum SupportedRunners {
             .sorted { (rank($0.element), $0.offset) < (rank($1.element), $1.offset) }
             .map(\.element)
     }
+
+    static let freeWine = RunnerBuild(
+        bundleVersion: "26.3_1", releaseVersion: "26.3 revision 1", flavor: nil,
+        loaderSHA256: "0c162a9d54ef805bee6926d1fd29dfacc0b65db925b440b700f9b47ae9d30d73",
+        cleanNtdll: [
+            .x86_64Windows: "2436080c11797d5e1a097969881ffbf40b0bea57727105c1cdd6a5e3c7a36818",
+            .i386Windows: "fabf66fe17c209837cafe25d5b2208189c6500abd8274b184f07c9dff0e1d96b",
+        ],
+        patchedNtdll: [
+            .x86_64Windows: "2436080c11797d5e1a097969881ffbf40b0bea57727105c1cdd6a5e3c7a36818",
+            .i386Windows: "fabf66fe17c209837cafe25d5b2208189c6500abd8274b184f07c9dff0e1d96b",
+        ],
+        tools: [CompatTool(name: "notproton-freewine", flavor: .rosetta,
+                           display: "Free Wine 26.3 revision 1 (Experimental)")],
+        provider: .freeWine
+    )
 
     static let all: [RunnerBuild] = [
         RunnerBuild(
@@ -255,6 +276,7 @@ enum SupportedRunners {
             tools: [CompatTool(name: "notproton-sikarugir", flavor: .rosetta, display: "Sikarugir 11.0 revision 1 - Rosetta")],
             provider: .sikarugir
         ),
+        freeWine,
     ]
 
     static func build(loaderSHA256 hash: String) -> RunnerBuild? {

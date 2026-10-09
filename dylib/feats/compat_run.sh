@@ -37,7 +37,7 @@ np_display=$(sed -n 's/.*"display_name"[[:space:]]*"\(.*\)".*/\1/p' \
 [ -n "$np_display" ] || np_display="CrossOver build ${np_build:-unknown}"
 CX_ROOT="$np_support/runners/crossover-$np_build/CrossOver"
 case "$np_build" in
-  sikarugir-*) CX_ROOT="$np_support/runners/$np_build/Wine" ;;
+  sikarugir-*|freewine-*) CX_ROOT="$np_support/runners/$np_build/Wine" ;;
 esac
 export CX_ROOT
 # CrossOver initializes Rosetta's Windows thread-state support even without D3DMetal.
@@ -85,6 +85,21 @@ if [ -f "$CX_ROOT/notproton-provider" ]; then
       ;;
   esac
 fi
+
+# The source-built Wine base uses the standard builtin overlay search path.
+# Its Unix bridge must stay paired with its own ntdll, never the shared bridge.
+source_runner=0
+case "$np_build" in
+  freewine-*)
+    source_runner=1
+    case "${CX_GRAPHICS_BACKEND:-dxmt}" in
+      ''|dxmt) export WINEDLLPATH_PREPEND="$WINEDLLPATH_DXMT:$WINEDLLPATH_D9VK" ;;
+      dxvk) export WINEDLLPATH_PREPEND="$WINEDLLPATH_DXVK" ;;
+      wined3d) unset WINEDLLPATH_PREPEND ;;
+    esac
+    export WINEDLLOVERRIDES="${WINEDLLOVERRIDES:+$WINEDLLOVERRIDES;}d3d9,d3d10,d3d10_1,d3d10core,d3d11,dxgi=b"
+    ;;
+esac
 
 if [ -n "$STEAM_COMPAT_DATA_PATH" ]; then
   log="$STEAM_COMPAT_DATA_PATH/notproton-run.log"
@@ -530,7 +545,7 @@ echo "runner: build $np_build ($np_display) at $CX_ROOT" >> "$log" 2>&1 || true
 # FEX builds need two, one for FEX/arm64 Wine and one for Rosetta/AMD64 Wine
 runner_id=""
 [ -z "$np_build" ] || runner_id="crossover-$np_build-${wine_unix##*/}"
-case "$np_build" in sikarugir-*) runner_id="$np_build-${wine_unix##*/}" ;; esac
+case "$np_build" in sikarugir-*|freewine-*) runner_id="$np_build-${wine_unix##*/}" ;; esac
 
 in_template_env() {
   prefix="$1"
@@ -1022,10 +1037,19 @@ install_legacycompat() {
 
 bridge_files="steamclient64.dll steamclient.dll tier0_s64.dll vstdlib_s64.dll"
 bridge_files="$bridge_files lsteamclient.dll lsteamclient.so steam.exe"
+bridge_source() {
+  origin="$bridge_src/$1"
+  if [ "$source_runner" = 1 ]; then
+    case "$1" in
+      */lsteamclient.so|*-windows/lsteamclient.dll) origin="$CX_ROOT/lib/wine/$1" ;;
+      lsteamclient.dll) origin="$CX_ROOT/lib/wine/x86_64-windows/lsteamclient.dll" ;;
+    esac
+  fi
+}
 # A clone cannot cross drives, so a prefix on another drive clones from a copy of the
 # bridge kept beside that drive's templates.
 bridge_origin() {
-  origin="$bridge_src/$1"
+  bridge_source "$1"
   [ -n "$bridge_cache" ] || return 0
   cached="$bridge_cache/$1"
   for d in "${bridge_cache%/*}" "$bridge_cache" "${cached%/*}"; do
@@ -1042,7 +1066,7 @@ bridge_origin() {
 }
 place_bridge_file() {
   bridge_origin "$1"
-  cp -c -fp "$origin" "$2" 2>/dev/null || cp -fp "$bridge_src/$1" "$2" 2>> "$log"
+  cp -c -fp "$origin" "$2" 2>/dev/null || cp -fp "$origin" "$2" 2>> "$log"
 }
 if [ -d "$bridge_src" ] && [ -n "$WINEPREFIX" ]; then
   stage_step="bridge staging"
@@ -1051,6 +1075,7 @@ if [ -d "$bridge_src" ] && [ -n "$WINEPREFIX" ]; then
   if [ -n "$STEAM_COMPAT_DATA_PATH" ] && ! same_volume "$bridge_src" "$STEAM_COMPAT_DATA_PATH" \
     && volume_clones "$STEAM_COMPAT_DATA_PATH"; then
     bridge_cache="$(dirname "$STEAM_COMPAT_DATA_PATH")/notproton-template/bridge"
+    [ "$source_runner" != 1 ] || bridge_cache="$bridge_cache/$np_build"
   fi
   bridge_matches=1
   for f in $bridge_files; do
@@ -1058,6 +1083,10 @@ if [ -d "$bridge_src" ] && [ -n "$WINEPREFIX" ]; then
     if [ "$f" = lsteamclient.so ]; then
       src="$bridge_src/${wine_unix##*/}/$f"
     fi
+    rel="$f"
+    [ "$f" != lsteamclient.so ] || rel="${wine_unix##*/}/$f"
+    bridge_source "$rel"
+    src="$origin"
     if ! cmp -s "$src" "$prefix_steam/$f"; then
       bridge_matches=0
       break
@@ -1073,6 +1102,8 @@ if [ -d "$bridge_src" ] && [ -n "$WINEPREFIX" ]; then
         rel="${wine_unix##*/}/$f"
       fi
       src="$bridge_src/$rel"
+      bridge_source "$rel"
+      src="$origin"
       if [ ! -f "$src" ]; then
         echo "=== bridge missing $f ===" >> "$log" 2>&1 || true
         continue
@@ -1427,6 +1458,7 @@ if [ "$free_runner" = 1 ]; then
     --env GST_PLUGIN_PATH="$GST_PLUGIN_PATH" \
     --env VK_DRIVER_FILES="$VK_DRIVER_FILES" \
     --env WINEDLLPATH_DXMT="${WINEDLLPATH_DXMT:-}" \
+    --env WINEDLLPATH_PREPEND="${WINEDLLPATH_PREPEND:-}" \
     --env WINEDLLPATH_DXVK="${WINEDLLPATH_DXVK:-}" \
     --env WINEDLLPATH_D9VK="${WINEDLLPATH_D9VK:-}" "$@"
 fi

@@ -91,7 +91,7 @@ enum RunnerInstaller {
     static func removeLeftoverRemovals(runners: URL) {
         let fm = FileManager.default
         let entries = (try? fm.contentsOfDirectory(at: runners, includingPropertiesForKeys: nil)) ?? []
-        for entry in entries where (entry.lastPathComponent.hasPrefix(".crossover-") || entry.lastPathComponent.hasPrefix(".sikarugir-"))
+        for entry in entries where (entry.lastPathComponent.hasPrefix(".crossover-") || entry.lastPathComponent.hasPrefix(".sikarugir-") || entry.lastPathComponent.hasPrefix(".freewine-"))
             && entry.lastPathComponent.hasSuffix(".removing") {
             try? fm.removeItem(at: entry)
         }
@@ -149,7 +149,7 @@ enum RunnerInstaller {
                 guard info.st_mode & S_IFMT == S_IFDIR else { throw POSIXError(.ENOTDIR) }
 
                 for name in try templateDirectoryNames(root) where !kept.contains(name) {
-                    let template = name.wholeMatch(of: #/(crossover-[A-Za-z0-9.-]+|sikarugir-[A-Za-z0-9._-]+)-(x86_64|aarch64)-unix/#) != nil
+                    let template = name.wholeMatch(of: #/(crossover-[A-Za-z0-9.-]+|(?:sikarugir|freewine)-[A-Za-z0-9._-]+)-(x86_64|aarch64)-unix/#) != nil
                     guard template || (builds.isEmpty && name == SupportPaths.bridgeCacheFolder) else { continue }
                     do {
                         try removeTemplateEntry(name, in: root, device: info.st_dev)

@@ -98,6 +98,7 @@ for (const form of Object.keys(FORMS)) {
 
   for (const [tool, config, free] of [
     ['notproton-sikarugir', {}, true],
+    ['notproton-freewine', {}, true],
     ['notproton', { legacyFree: true }, true],
     ['', { defaultTool: 'notproton-sikarugir' }, true],
     ['', { defaultTool: 'notproton', legacyFree: true }, true],
