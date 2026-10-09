@@ -4,14 +4,14 @@ Updated 10 October 2026. Hardware: Apple M4 Pro. Installed baseline: Sikarugir W
 11.0 revision 1, Rosetta; DXMT 0.80 development build, DXVK-Sikarugir async 1.10.3,
 D9VK 2.3 and shared MoltenVK 1.4.1. NotProton application/Steam installation is
 now the 1.1.3 review build, rebased onto upstream 1.1.3. The experimental
-source engine is imported as a separate managed Steam tool; selection and visible
-game verification remain pending. Its DXMT overlay uses released v0.80.
+source engine is imported as a separate managed Steam tool; Fallout is selected for this tool and its prefix has been rebuilt successfully.
+Visible game verification remains pending. Its DXMT overlay uses released v0.80.
 
 | Game | Prerequisites / launch | Menu | Gameplay | Media | Longer session / remaining coverage |
 | --- | --- | --- | --- | --- | --- |
 | Age of Empires: Definitive Edition, 1017900 | Previously passed | Previously passed after scoped adapter profile | User confirmed playable with normal audio | Startup video and audio stutter; unresolved | Long sessions, network, controllers and overlay not comprehensively qualified; retest after engine changes |
 | Fallout 76, 1151340 — installed Sikarugir | Dependency helper ran; completion is not fully qualified. Main executable reproducibly crashes at startup | Failed before menu in the controlled replay | Pending | Pending | Pending |
-| Fallout 76 — experimental source candidate | Original crash removed by verified namespace fix; native Steam client and D3D11 initialize | Pending visible verification; process survives 45-second probe | Pending | Pending | Networking and longer sessions pending; managed source tool is imported; per-game selection is pending |
+| Fallout 76 — experimental source candidate | Original crash removed by verified namespace fix; native Steam client and D3D11 initialize | Pending visible verification; process survives 45-second probe | Pending | Pending | Networking and longer sessions pending; managed source tool selected and prefix rebuilt; integrated game launch pending |
 
 ## Fallout 76 evidence
 

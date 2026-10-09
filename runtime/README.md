@@ -94,7 +94,8 @@ mapped games before removing it. A damaged source copy must be removed and
 reimported, rather than repaired using generic engine binaries.
 
 The review app and managed engine were installed on 10 October 2026. Steam
-selection and visible Fallout menu/gameplay checks remain pending in the
+selection for Fallout and its prefix rebuild are complete. Visible Fallout
+menu/gameplay checks remain pending in the
 [acceptance matrix](../docs/research/game-compatibility-matrix.md).
 
 ## Validate

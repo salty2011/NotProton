@@ -179,8 +179,8 @@ Runtime execution is the leading area to investigate from the observed failure. 
 The branch is rebased onto upstream **1.1.3**. Changes remain fork-only. The
 application was rebuilt and strictly code-signature verified; the installed
 review application and Steam components are now installed as 1.1.3. A managed
-experimental source engine is imported; Steam selection and visible game checks
-remain pending.
+experimental source engine is imported and selected for Fallout, whose prefix
+was rebuilt successfully. Visible game checks remain pending.
 
 The original Fallout crash is now diagnosed. The packaged Sikarugir engine fails
 to open its executable through `\\.\GLOBALROOT\??\S:\...`, returning
