@@ -1,0 +1,57 @@
+name: free runtime qualification
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'runtime/**'
+      - 'runtime-tests/**'
+      - 'ntdll-patch/**'
+      - 'lsteamclient/**'
+      - '.github/workflows/free-runtime.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: xcode-27
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select and record the toolchain
+        run: |
+          sudo xcode-select -s /Applications/Xcode_27.0.app
+          xcodebuild -version
+          swift --version
+          brew install mingw-w64 bison flex pkg-config gnu-getopt freetype gnutls sdl2 gstreamer
+      - name: Prepare matching bridge inputs
+        run: |
+          git clone --no-checkout https://github.com/jmpews/Dobby.git vendor/dobby
+          git -C vendor/dobby checkout 5dfc8546954ce3b3198132ab13fddb89ee92cdd7
+          make dobby bridge
+      - name: Check package and policy consumers
+        run: |
+          python3 -m unittest discover -s runtime/tests -v
+          python3 runtime/generate-policy.py --check
+      - uses: actions/cache@v4
+        with:
+          path: .scratch/runtime-inputs
+          key: free-runtime-inputs-${{ hashFiles('runtime/inputs.json', 'runtime/component-inputs.json') }}
+      - name: Build isolated source engine, package and reports
+        run: |
+          python3 runtime/release.py --work .scratch/runtime-ci --cache .scratch/runtime-inputs --headers "$(brew --prefix)" --id "freewine-26.3_ci-${GITHUB_SHA:0:12}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+      - name: Retain qualification reports and matching source only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: free-runtime-source-and-qualification
+          path: |
+            .scratch/runtime-ci/sources/
+            .scratch/runtime-ci/provenance.json
+            .scratch/runtime-ci/qualification/*.json
+            .scratch/runtime-ci/qualification/*.log
+            .scratch/runtime-ci/build/*log
+          if-no-files-found: warn
+      # Binary publication and catalog promotion remain disabled until all
+      # corresponding dependency sources/notices and gameplay gates are reviewed.

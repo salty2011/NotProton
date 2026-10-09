@@ -101,3 +101,19 @@ renderer and applied profile. Distinguish these milestones:
 Use `pending` for untested milestones and retain failures. Neither exit status 0
 nor a successfully created graphics device proves menu or gameplay compatibility.
 See [the current matrix](../docs/research/game-compatibility-matrix.md).
+
+## Packaged-runtime and media qualification
+
+`qualify.py --runtime /absolute/path/to/Wine --output .scratch/new-qualification`
+builds and runs both architectures' namespace and HTTPS probes in a disposable
+prefix and writes `qualification.json`. Native Steam/gameplay checks are explicitly
+reported as skipped; it never uses a Steam account or a live game prefix.
+
+`media.py run --runtime /absolute/path/to/Wine --output .scratch/new-media --runs 3`
+builds the Windows Media Foundation/D3D11 probe and test-only native audio tap,
+generates its own marker clip, and records three cold/warm runs. Requires the
+MinGW C++ compiler, clang, ffmpeg and Rosetta. `--clip /path/to/local/video.mp4`
+selects private media; `--renderer dxvk` selects a separate renderer trial.
+Captured zero-filled buffers, callback errors, video-transfer timing and marker
+A/V drift remain separate metrics. The probe does not measure actual swapchain
+presentation or establish that a complete game's videos and gameplay work.

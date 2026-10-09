@@ -124,3 +124,42 @@ Any future release must provide complete corresponding source and patches.
 The namespace fix also appears in [Valve's Wine history](https://github.com/ValveSoftware/wine/commit/0b4e6f7f3c909fb9f9a0621ed1e3663e0ce39a34).
 The prepend patch is reused from pinned Highball tooling, with its MacPorts
 origin recorded in the manifest. Credit this existing work.
+
+## Portable package development
+
+`package.py components` prepares the pinned free dependency selection directly
+from the engine/template archives in `component-inputs.json`. No installed
+Sikarugir or paid runtime is required. Use a new output directory:
+
+```sh
+python3 runtime/package.py components \
+  --engine /path/to/WS12WineSikarugir11.0_1.tar.xz \
+  --template /path/to/Template-1.0.21.tar.xz \
+  --output .scratch/runtime-components
+python3 runtime/build.py --work .scratch/runtime-build \
+  --components .scratch/runtime-components
+```
+
+`package.py build` combines that assembly, the source engine and official DXMT
+with provenance into an archive and catalog. It validates the complete file/link
+inventory, Intel/Windows architecture, internal non-system library references,
+and executable entry points. The macOS minimum comes from actual binaries;
+the current local package requires macOS 27.0.0. `package.py verify <archive>`
+checks relocation and inventory. Run `python3 -m unittest discover -s runtime/tests -v`
+for archive-safety/consumer tests.
+
+The app's **Install Package…** action accepts the exact archive approved by its
+bundled catalog, then prepares its matching bridge in isolation before committing
+its own versioned Steam tool. Existing engines remain available. Package
+revisions can share a loader; identify them by approved archive and build ID,
+not by guessing from the loader hash. Runtime capabilities are reviewed per
+revision in `runtime/policy.json`; `generate-policy.py` projects those descriptors
+into Swift, Steam UI and the launcher, and `--check` detects stale projections.
+
+The release workflow remains quarantined: `release.py` produces separate binary,
+modified-source and qualification outputs, but binary publication/catalog promotion
+are disabled while dependency corresponding-source/notices review is incomplete.
+The generated `distributionReady` field remains false. Do not publish a local
+binary merely because its namespace/TLS tests pass. See the new
+[measured media baseline](../docs/research/free-runtime-media-baseline.md) for the
+separate playback and game acceptance gates.

@@ -320,6 +320,15 @@ def verify(package):
 def build(args):
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
+    if (output / (args.id + '.tar.xz')).exists():
+        raise ValueError('Runtime identity already exists; use a new build id')
+    policies = json.loads((Path(__file__).parent / 'policy.json').read_text())['runtimes']
+    policy = policies.get(args.id)
+    # Unreviewed CI compilations must never inherit a release's qualification.
+    capabilities = {name: policy['capabilities'][name] if policy else
+                    ('dxmt+d9vk' if name == 'automatic' else
+                     'unavailable' if name in ('d3dmetal', 'fex') else 'experimental')
+                    for name in ('automatic', 'dxmt', 'dxvk', 'wined3d', 'd3dmetal', 'fex')}
     with tempfile.TemporaryDirectory(prefix='.runtime-', dir=output) as temporary:
         stage = Path(temporary) / 'package'
         stage.mkdir()
@@ -345,8 +354,7 @@ def build(args):
                       'minimumAppVersion': '1.1.3', 'minimumMacOSVersion': minimum_os,
                       'bridgeABI': args.id, 'files': files,
                       'criticalFiles': {name: digest(stage / 'Wine' / name) for name in required if not name.startswith('Libraries/')},
-                      'capabilities': {'automatic': 'dxmt+d9vk', 'dxmt': 'supported', 'dxvk': 'experimental',
-                                       'wined3d': 'experimental', 'd3dmetal': 'unavailable', 'fex': 'unavailable'},
+                      'capabilities': capabilities,
                       'provenance': json.loads(args.provenance.read_text()),
                       'distributionReady': False}
         validate_descriptor(descriptor)

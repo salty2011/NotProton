@@ -258,7 +258,7 @@ source_runner=0
 case "$np_build" in
   freewine-*)
     source_runner=1
-    case "${CX_GRAPHICS_BACKEND:-dxmt}" in
+    case "$NP_EFFECTIVE_BACKEND" in
       ''|dxmt) export WINEDLLPATH_PREPEND="$WINEDLLPATH_DXMT:$WINEDLLPATH_D9VK" ;;
       dxvk) export WINEDLLPATH_PREPEND="$WINEDLLPATH_DXVK" ;;
       wined3d) unset WINEDLLPATH_PREPEND ;;
