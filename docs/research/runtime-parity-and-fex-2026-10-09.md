@@ -180,7 +180,9 @@ The branch is rebased onto upstream **1.1.3**. Changes remain fork-only. The
 application was rebuilt and strictly code-signature verified; the installed
 review application and Steam components are now installed as 1.1.3. A managed
 experimental source engine is imported and selected for Fallout, whose prefix
-was rebuilt successfully. Visible game checks remain pending.
+was rebuilt successfully. The user subsequently confirmed Steam launch, login
+and entering gameplay on 10 October 2026. Media, longer sessions and broader
+feature checks remain pending.
 
 The original Fallout crash is now diagnosed. The packaged Sikarugir engine fails
 to open its executable through `\\.\GLOBALROOT\??\S:\...`, returning
@@ -195,8 +197,9 @@ source implements the missing API behavior. A controlled comparison removes
 only that `GLOBALROOT` handling and reproduces the exact original exception;
 restoring it removes the exception. This is a general Windows path behavior,
 not an AoE or Fallout executable modification. The game initializes Steam and
-D3D11 and survives a 45-second probe. Visible menu, login and gameplay checks
-are pending because the Mac was locked; Fallout is not qualified end to end.
+D3D11 and survives a 45-second probe. After managed import and prefix rebuild,
+the user confirmed successful login and entry into gameplay. Longer sessions,
+media and full feature coverage remain unqualified.
 
 The source candidate includes fonts, GnuTLS, GStreamer and SDL. Both Windows
 architectures pass namespace access, normal-certificate WinHTTP HTTPS and native
@@ -220,8 +223,8 @@ to DXMT. Paid-tool behavior is retained. The complete Swift suite passes
 affected native compatibility and panel fixture/behavior checks also pass.
 Actual Steam UI rendering still needs a visible check.
 
-Remaining priority order: finish visible qualification of the managed source runtime;
-retest AoE and Fallout from cloned prefixes; add reusable profiles and dependency
+Remaining priority order: package and maintain the managed source runtime;
+retest AoE on this engine and broaden Fallout session/feature coverage; add reusable profiles and dependency
 recipes where evidence requires them; investigate video/audio timing; broaden
 controller/overlay/long-session coverage. Free D3D12 and native ARM/FEX remain
 separate later projects. The source baseline does not establish parity with

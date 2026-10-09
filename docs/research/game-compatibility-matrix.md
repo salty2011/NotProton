@@ -5,13 +5,15 @@ Updated 10 October 2026. Hardware: Apple M4 Pro. Installed baseline: Sikarugir W
 D9VK 2.3 and shared MoltenVK 1.4.1. NotProton application/Steam installation is
 now the 1.1.3 review build, rebased onto upstream 1.1.3. The experimental
 source engine is imported as a separate managed Steam tool; Fallout is selected for this tool and its prefix has been rebuilt successfully.
-Visible game verification remains pending. Its DXMT overlay uses released v0.80.
+The user confirmed Fallout launches, logs in and enters gameplay with the rebuilt
+prefix. Its DXMT overlay uses released v0.80. Media and longer-session checks
+remain pending.
 
 | Game | Prerequisites / launch | Menu | Gameplay | Media | Longer session / remaining coverage |
 | --- | --- | --- | --- | --- | --- |
 | Age of Empires: Definitive Edition, 1017900 | Previously passed | Previously passed after scoped adapter profile | User confirmed playable with normal audio | Startup video and audio stutter; unresolved | Long sessions, network, controllers and overlay not comprehensively qualified; retest after engine changes |
 | Fallout 76, 1151340 — installed Sikarugir | Dependency helper ran; completion is not fully qualified. Main executable reproducibly crashes at startup | Failed before menu in the controlled replay | Pending | Pending | Pending |
-| Fallout 76 — experimental source candidate | Original crash removed by verified namespace fix; native Steam client and D3D11 initialize | Pending visible verification; process survives 45-second probe | Pending | Pending | Networking and longer sessions pending; managed source tool selected and prefix rebuilt; integrated game launch pending |
+| Fallout 76 — managed experimental source runtime | User confirmed successful Steam launch after prefix rebuild; original crash removed by verified namespace fix | User confirmed reaching gameplay | User confirmed login and entering gameplay | Pending | Basic login/network path passed in user testing; longer sessions, save/reload, controllers and overlay remain pending |
 
 ## Fallout 76 evidence
 
@@ -30,8 +32,10 @@ A controlled comparison establishes causality for the original startup crash:
 removing only the `GLOBALROOT` implementation from the candidate's Unix `ntdll`
 restores the same exception at `0x1420B3880`; restoring it removes that exception.
 The completed candidate initializes native Steam and D3D11 (feature level 11_1)
-and survives a 45-second probe. This is not menu or gameplay proof. The Mac was
-locked during these probes, so visible verification remains pending.
+and survives a 45-second probe. Those probes alone did not establish menu or gameplay compatibility. After
+managed import, Steam selection and prefix rebuild, the user confirmed successful
+launch, login and entry into gameplay on 10 October 2026. This does not establish
+long-session stability or complete feature coverage.
 
 The candidate uses public CrossOver 26.3 Wine source, source-level NotProton
 Steam hooks, the matching Unix bridge, official DXMT v0.80, and the existing

@@ -35,8 +35,9 @@ affecting both video and audio; gameplay audio has been confirmed smooth.
 Fallout 76 exposes a missing `GLOBALROOT` Windows path behavior in the packaged
 Sikarugir engine. A separate [source-built free runtime candidate](runtime/README.md)
 fixes that startup exception and passes 32/64-bit namespace, Steam bridge and
-HTTPS probes. Menu, networking and gameplay validation remain pending; the
-candidate is imported separately through **Experimental Free Wine → Import Build…**
+HTTPS probes. After rebuilding the prefix, the user confirmed successful login
+and entry into Fallout gameplay. Longer sessions and full feature coverage remain
+unqualified. The candidate is imported separately through **Experimental Free Wine → Import Build…**
 and selected explicitly per game in Steam. Track qualification in
 the [game acceptance matrix](docs/research/game-compatibility-matrix.md).
 

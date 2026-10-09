@@ -64,7 +64,9 @@ just this directory.
 On 9 October 2026, a clean source tree built successfully through this recipe.
 That output passed all six 32/64-bit namespace, HTTPS and native Steam bridge
 probes. Fallout's original exception was absent in its 45-second startup replay,
-and a D3D11 feature-level 11_1 device initialized. Menu/gameplay remain pending.
+and a D3D11 feature-level 11_1 device initialized. After managed import and prefix
+rebuild on 10 October, the user confirmed Steam launch, login and entering
+gameplay. Longer sessions and additional game features remain unqualified.
 
 ## Import and select
 
@@ -94,8 +96,8 @@ mapped games before removing it. A damaged source copy must be removed and
 reimported, rather than repaired using generic engine binaries.
 
 The review app and managed engine were installed on 10 October 2026. Steam
-selection for Fallout and its prefix rebuild are complete. Visible Fallout
-menu/gameplay checks remain pending in the
+selection for Fallout and its prefix rebuild are complete. The user confirmed
+login and entry into gameplay. Remaining coverage is recorded in the
 [acceptance matrix](../docs/research/game-compatibility-matrix.md).
 
 ## Validate
