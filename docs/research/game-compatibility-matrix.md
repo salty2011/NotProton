@@ -12,8 +12,24 @@ remain pending.
 | Game | Prerequisites / launch | Menu | Gameplay | Media | Longer session / remaining coverage |
 | --- | --- | --- | --- | --- | --- |
 | Age of Empires: Definitive Edition, 1017900 | Previously passed | Previously passed after scoped adapter profile | User confirmed playable with normal audio | Startup video and audio stutter; unresolved | Long sessions, network, controllers and overlay not comprehensively qualified; retest after engine changes |
+| Age of Empires — packaged source runtime revision 2 | Steam dependency preparation completed; game process started with the scoped adapter profile and DXMT | Awaiting visual confirmation | Pending on this revision | Awaiting user confirmation; no media patch promoted | Original prefix retained by the backed-up migration; repeated startup and gameplay qualification pending |
 | Fallout 76, 1151340 — installed Sikarugir | Dependency helper ran; completion is not fully qualified. Main executable reproducibly crashes at startup | Failed before menu in the controlled replay | Pending | Pending | Pending |
 | Fallout 76 — managed experimental source runtime | User confirmed successful Steam launch after prefix rebuild; original crash removed by verified namespace fix | User confirmed reaching gameplay | User confirmed login and entering gameplay | Pending | Basic login/network path passed in user testing; longer sessions, save/reload, controllers and overlay remain pending |
+| Quake II, 2320 | User reports launch reaches a level; exact runtime, renderer and edition/executable for this replay are not confirmed | Not separately assessed | Blocked: HUD is visible, but the game world is black | Not assessed | Rendering defect unresolved; reaching a level does not establish playable gameplay |
+
+## Quake II rendering report
+
+On 10 October 2026 the user reported that Quake II launches into a level, but only
+the HUD is visible and the game world is black. Record this as a gameplay-blocking
+rendering issue, separate from AoE's startup media stutter. No cause or workaround
+has been established, and no controlled reproduction has been run for this report.
+
+Before selecting a fix, identify the actual edition/executable, selected runtime,
+renderer and effective settings, then capture a failing replay and compare graphics
+paths using a disposable or backed-up prefix. Acceptance requires a visible game
+world and playable level with the HUD intact, followed by repeat-launch checks.
+The local follow-up ticket is
+`.scratch/quake2-rendering/issues/01-black-world-visible-hud.md`.
 
 ## Fallout 76 evidence
 
