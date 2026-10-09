@@ -283,6 +283,28 @@ final class SystemStatus {
         }
     }
 
+    func installRuntimePackage(_ package: RuntimePackage) async {
+        guard canInstall, snapshot?.payload.steamComponentsComplete == true else { return }
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.prompt = "Install Package"
+        panel.message = "Select \(package.file). This app verifies the archive against its bundled catalog."
+        guard panel.runModal() == .OK, let archive = panel.url else { return }
+        await perform(from: RuntimePackageInstaller.step) { progress in
+            let lock = try DeploymentContent.acquireInstallationLock(for: SupportPaths.Steam.app)
+            defer { close(lock) }
+            try await requireUnblockedContent()
+            progress("Verifying the package and preparing its matching Steam bridge")
+            _ = try await Task.detached(priority: .userInitiated) {
+                try RuntimePackageInstaller.install(archive: archive, package: package)
+            }.value
+            let message = "Free runtime package installed. Select its version in the game's Steam Compatibility settings."
+            return SteamBundle.isRunning ? "\(message) \(Self.toolsRestartHint)" : message
+        }
+    }
+
     func addCrossOver() async {
         let panel = NSOpenPanel()
         panel.canChooseFiles = true

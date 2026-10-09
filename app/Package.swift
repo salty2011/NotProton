@@ -26,6 +26,8 @@ let package = Package(
             resources: (hasPayload ? [.copy("Resources/payload")] : []) + [
                 .copy("Resources/payload.manifest"),
                 .copy("Resources/valve-packages.manifest"),
+                .copy("Resources/free-runtime-catalog.json"),
+                .copy("Resources/runtime-policy.json"),
                 .copy("Resources/detour2.bin"),
                 .copy("Resources/detour2-fex.bin"),
                 .copy("Resources/detour2-sikarugir11.bin"),

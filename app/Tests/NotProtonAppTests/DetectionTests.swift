@@ -39,7 +39,8 @@ struct SupportedRunnerTests {
         let ids = SupportedRunners.all.map(\.id)
         #expect(Set(ids).count == ids.count)
 
-        let loaders = SupportedRunners.all.flatMap { [$0.loaderSHA256] + $0.rebuilds.map(\.loaderSHA256) }
+        let loaders = SupportedRunners.all.filter { RuntimeCatalog.package(id: $0.id) == nil }
+            .flatMap { [$0.loaderSHA256] + $0.rebuilds.map(\.loaderSHA256) }
         #expect(Set(loaders).count == loaders.count)
     }
 

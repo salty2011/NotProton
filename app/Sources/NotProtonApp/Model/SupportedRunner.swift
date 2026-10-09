@@ -277,10 +277,13 @@ enum SupportedRunners {
             provider: .sikarugir
         ),
         freeWine,
-    ]
+    ] + RuntimeCatalog.packages.map(\.build)
 
     static func build(loaderSHA256 hash: String) -> RunnerBuild? {
-        all.lazy.compactMap { $0.matching(loaderSHA256: hash) }.first
+        // Package revisions may share a loader while changing dependencies.
+        // Those identities require a catalog-approved archive, not a loader guess.
+        all.lazy.filter { RuntimeCatalog.package(id: $0.id) == nil }
+            .compactMap { $0.matching(loaderSHA256: hash) }.first
     }
 
     static func build(id: String) -> RunnerBuild? {

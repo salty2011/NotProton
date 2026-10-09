@@ -14,7 +14,7 @@ repo = Path(__file__).resolve().parent.parent
 inputs = json.loads((repo / 'runtime/inputs.json').read_text())
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--work', type=Path, required=True)
-parser.add_argument('--components', type=Path, required=True, help='Installed, verified Sikarugir Wine root')
+parser.add_argument('--components', type=Path, required=True, help='Verified dependency assembly from package.py components')
 parser.add_argument('--headers', type=Path, default=Path('/opt/homebrew'))
 parser.add_argument('--jobs', type=int, default=8)
 parser.add_argument('--stage-only', action='store_true', help='Stage an already built candidate')
@@ -25,7 +25,7 @@ headers = args.headers.resolve()
 if any(c.isspace() for c in str(work)) or args.jobs < 1:
     parser.error('Use a work path without whitespace and a positive job count')
 if not (components / 'notproton-provider').is_file() or not (components / 'Libraries').is_dir():
-    parser.error('--components must name an installed Sikarugir Wine root')
+    parser.error('--components must name the verified free dependency assembly')
 work.mkdir(parents=True, exist_ok=True)
 source = work / 'source/sources/wine'
 build = work / 'wine-build'

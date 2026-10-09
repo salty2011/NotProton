@@ -27,7 +27,9 @@ enum FreeWineInstaller {
         }
     }
 
-    static func problems(in root: URL) -> [String] {
+    static func problems(in root: URL, build: RunnerBuild = SupportedRunners.freeWine) -> [String] {
+        if let package = RuntimeCatalog.package(id: build.id) { return package.problems(in: root) }
+        guard build.id == SupportedRunners.freeWine.id else { return ["Unknown free runtime package \(build.id)"] }
         var result = mismatches(in: root, hashes: binaryHashes)
         do { try RunnerInstaller.verifyClone(build: build, root: root) }
         catch { result.append("Source runtime loader or ntdll does not match the qualified build") }
@@ -42,6 +44,13 @@ enum FreeWineInstaller {
             }
         }
         return result
+    }
+
+    static func binaryHashes(for build: RunnerBuild) -> [String: String] {
+        if let package = RuntimeCatalog.package(id: build.id) {
+            return package.descriptor.criticalFiles.filter { $0.key != "lib/wine/x86_64-unix/wine" }
+        }
+        return build.id == SupportedRunners.freeWine.id ? binaryHashes : [:]
     }
 
     static func assemble(from source: URL, components: URL, renderer: URL, runners: URL = SupportPaths.runners) throws {

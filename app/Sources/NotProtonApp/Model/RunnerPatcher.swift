@@ -54,7 +54,7 @@ enum RunnerPatcher {
     ) -> [String] {
         var wrong: [String] = []
         if build.provider == .sikarugir { wrong += SikarugirInstaller.problems(in: root) }
-        if build.provider == .freeWine { wrong += FreeWineInstaller.problems(in: root) }
+        if build.provider == .freeWine { wrong += FreeWineInstaller.problems(in: root, build: build) }
         for arch in WineArch.allCases {
             guard let expected = build.patchedNtdll[arch] else { continue }
             let live = root.appending(path: "lib/wine/\(arch.rawValue)/ntdll.dll")

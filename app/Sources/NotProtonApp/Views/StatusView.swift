@@ -373,6 +373,23 @@ struct StatusView: View {
                         },
                     menu: sourcePresent ? [removeCopyAction(sourceBuild.id, label: "Remove Copy\u{2026}")] : []
                 )
+                ForEach(RuntimeCatalog.packages, id: \.id) { package in
+                    let present = snapshot.installedRunners.contains { $0.id == package.id }
+                        || snapshot.damagedRunners.contains(package.id)
+                    let ready = present && !Self.needsRepair(snapshot.runner, build: package.id)
+                        && !snapshot.damagedRunners.contains(package.id)
+                    StatusRow(
+                        title: "Free Wine \(package.descriptor.displayVersion)",
+                        value: ready ? "Runtime package ready." : present ? "Remove the damaged copy, then reinstall its package." : "Install the approved local runtime package.",
+                        tone: ready ? .ok : .neutral,
+                        detail: "Requires macOS \(package.descriptor.minimumMacOSVersion). Select this version per game; existing runtimes remain available.",
+                        action: present ? nil : StatusAction(label: "Install Package\u{2026}",
+                            isEnabled: status.canInstall && snapshot.payload.steamComponentsComplete) {
+                                Task { await status.installRuntimePackage(package) }
+                            },
+                        menu: present ? [removeCopyAction(package.id, label: "Remove Copy\u{2026}")] : []
+                    )
+                }
                 crossOverSection(snapshot)
             } header: {
                 Text("Compatibility Tools")

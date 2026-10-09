@@ -177,7 +177,7 @@ enum DeploymentContent {
         for build in RunnerStore.installedBuilds(in: runners) {
             let root = SupportPaths.clonedRoot(forBuild: build.id, runners: runners)
             if build.provider == .freeWine {
-                for (path, hash) in FreeWineInstaller.binaryHashes {
+                for (path, hash) in FreeWineInstaller.binaryHashes(for: build) {
                     files.append((root.appending(path: path), hash, "\(build.id)/\(path)"))
                 }
             }

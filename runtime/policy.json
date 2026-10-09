@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 1,
+  "runtimes": {
+    "sikarugir-11.0_1": {
+      "tools": [
+        "notproton-sikarugir"
+      ],
+      "automatic": "dxmt",
+      "capabilities": {
+        "automatic": "dxmt+d9vk",
+        "dxmt": "supported",
+        "dxvk": "experimental",
+        "wined3d": "experimental",
+        "d3dmetal": "unavailable",
+        "fex": "unavailable",
+        "msync": "experimental",
+        "avx": "experimental",
+        "hud": "supported",
+        "retina": "experimental",
+        "controllers": "experimental",
+        "nvapi": "experimental",
+        "metalfx": "experimental"
+      }
+    },
+    "freewine-26.3_1": {
+      "tools": [
+        "notproton-freewine"
+      ],
+      "automatic": "dxmt",
+      "capabilities": {
+        "automatic": "dxmt+d9vk",
+        "dxmt": "supported",
+        "dxvk": "experimental",
+        "wined3d": "experimental",
+        "d3dmetal": "unavailable",
+        "fex": "unavailable",
+        "msync": "experimental",
+        "avx": "experimental",
+        "hud": "supported",
+        "retina": "experimental",
+        "controllers": "experimental",
+        "nvapi": "experimental",
+        "metalfx": "experimental"
+      }
+    },
+    "freewine-26.3_2": {
+      "tools": [
+        "notproton-freewine-26.3_2"
+      ],
+      "automatic": "dxmt",
+      "capabilities": {
+        "automatic": "dxmt+d9vk",
+        "dxmt": "supported",
+        "dxvk": "experimental",
+        "wined3d": "experimental",
+        "d3dmetal": "unavailable",
+        "fex": "unavailable",
+        "msync": "experimental",
+        "avx": "experimental",
+        "hud": "supported",
+        "retina": "experimental",
+        "controllers": "experimental",
+        "nvapi": "experimental",
+        "metalfx": "experimental"
+      }
+    }
+  },
+  "options": {
+    "MTL_HUD_ENABLED": {
+      "feature": "hud",
+      "label": "Metal HUD",
+      "renderers": [
+        "dxmt",
+        "dxvk"
+      ]
+    },
+    "ROSETTA_ADVERTISE_AVX": {
+      "feature": "avx",
+      "label": "Advertise AVX2 to Rosetta",
+      "renderers": [
+        "dxmt",
+        "dxvk",
+        "wined3d"
+      ]
+    },
+    "WINEMSYNC": {
+      "feature": "msync",
+      "label": "MSync",
+      "renderers": [
+        "dxmt",
+        "dxvk",
+        "wined3d"
+      ]
+    },
+    "NOTPROTON_RETINA": {
+      "feature": "retina",
+      "label": "High Resolution",
+      "renderers": [
+        "dxmt",
+        "dxvk",
+        "wined3d"
+      ]
+    },
+    "NOTPROTON_RAW_CONTROLLERS": {
+      "feature": "controllers",
+      "label": "Direct controller access",
+      "renderers": [
+        "dxmt",
+        "dxvk",
+        "wined3d"
+      ]
+    },
+    "DXMT_ENABLE_NVEXT": {
+      "feature": "nvapi",
+      "label": "DXMT DLSS",
+      "renderers": [
+        "dxmt"
+      ]
+    },
+    "DXMT_METALFX_SPATIAL_SWAPCHAIN": {
+      "feature": "metalfx",
+      "label": "DXMT MetalFX",
+      "renderers": [
+        "dxmt"
+      ]
+    },
+    "D3DM_ENABLE_METALFX": {
+      "feature": "d3dmetal",
+      "label": "D3DMetal DLSS",
+      "renderers": []
+    }
+  }
+}

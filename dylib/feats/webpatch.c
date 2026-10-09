@@ -1,5 +1,6 @@
 // Enables Steam Play in the UI/enables the Compatibility tab in game properties
 #include "webpatch.h"
+#include "runtime_policy.h"
 #include "../util/log.h"
 
 #include <stdlib.h>
@@ -187,7 +188,9 @@ static int out_expand(np_out_t *o, const char *replace, const np_cap_t *caps) {
     ARG "=>{" \
     "const t=" ARG ".details,o=t.strLaunchOptions||\"\"," \
     "tn=t.strCompatToolName||\"" NP_FALLBACK_TOOL "\"," \
-    "fr=tn===\"notproton-sikarugir\"||tn===\"notproton-freewine\"||(tn===\"notproton\"&&" NP_LEGACY_FREE ")," \
+    "rp=(" NP_RUNTIME_POLICIES ")[tn]||(tn===\"notproton\"&&" NP_LEGACY_FREE "?(" NP_RUNTIME_POLICIES ")[\"notproton-sikarugir\"]:null)," \
+    "fr=!!rp||tn.startsWith(\"notproton-freewine-\")," \
+    "cap=k=>rp?(rp.capabilities[k]||\"unavailable\"):(fr?\"unavailable\":\"supported\")," \
     NP_CX_LAUNCH_PARSE \
     "g=k=>{const p=E.e.filter(w=>o.startsWith(k+\"=\",w.start)).pop();" \
     "return p?(p.value===null?o.slice(p.start+k.length+1,p.end):p.value.slice(k.length+1)):\"\"}," \
@@ -198,9 +201,10 @@ static int out_expand(np_out_t *o, const char *replace, const np_cap_t *caps) {
     "E.e.forEach(w=>{if(ps.some(p=>o.startsWith(p[0]+\"=\",w.start))){" \
     "r+=o.slice(at,w.start);at=w.end;while(o[at]===\" \"||o[at]===\"\\t\")at++}});r+=o.slice(at)}" \
     "SteamClient.Apps.SetAppLaunchOptions(t.unAppID,r.trim()===\"%command%\"?\"\":r)}," \
-    "T=(ks,l,on,off)=>(0," RT ".jsx)(" BARREL ".Yh,{className:\"MSCXRow\",label:l," \
+    "T=(ks,l,on,off)=>{const op=(" NP_RUNTIME_OPTIONS ")[ks[0]],k=op&&op.feature,eb=b||(rp?rp.automatic:\"d3dmetal\");" \
+    "if(cap(k)===\"unavailable\"||(fr&&op&&!op.renderers.includes(eb)))return null;return(0," RT ".jsx)(" BARREL ".Yh,{className:\"MSCXRow\",label:l+(cap(k)===\"experimental\"?\" (Experimental)\":\"\")," \
     "checked:g(ks[0])===on," \
-    "onChange:v=>s(ks.map(k=>[k,v?on:(off||\"\")]))},ks[0])," \
+    "onChange:v=>s(ks.map(k=>[k,v?on:(off||\"\")]))},ks[0])}," \
     "b=g(\"CX_GRAPHICS_BACKEND\")," \
     "dm=!fr&&(\"\"===b||\"d3dmetal\"===b)," \
     "dx=\"\"===b||\"dxmt\"===b," \
@@ -220,9 +224,11 @@ static int out_expand(np_out_t *o, const char *replace, const np_cap_t *caps) {
     "{data:\"d3dmetal\",label:\"D3DMetal\"}," \
     "{data:\"dxmt\",label:\"DXMT\"}," \
     "{data:\"dxvk\",label:\"DXVK\"}," \
-    "{data:\"wined3d\",label:\"WineD3D\"}].filter(v=>!fr||v.data!==\"d3dmetal\");" \
+    "{data:\"wined3d\",label:\"WineD3D\"}].filter(v=>!v.data||cap(v.data)!==\"unavailable\")" \
+    ".map(v=>({...v,label:v.label+(v.data&&cap(v.data)===\"experimental\"?\" (Experimental)\":\"\")}));" \
     "if(t.unAppID<2147483648&&(t.vecPlatforms||[]).indexOf(\"osx\")>=0" \
     "&&!t.strCompatToolName)return null;" \
+    "if(fr&&!rp)return(0," RT ".jsx)(\"div\",{className:\"MSCXPanel\",children:\"Update NotProton to configure this runtime version.\"});" \
     "return(0," RT ".jsx)(\"div\",{className:\"MSCXPanel\",children:(0," RT ".jsxs)(" RT ".Fragment,{children:[" \
     "(0," RT ".jsx)(\"style\",{children:" NP_CX_OPTIONS_CSS "})," \
     "(0," RT ".jsxs)(" BARREL ".XY,{label:\"Graphics\",children:[" \
@@ -232,19 +238,19 @@ static int out_expand(np_out_t *o, const char *replace, const np_cap_t *caps) {
     ".concat(\"\"===v.data||\"dxmt\"===v.data?[]:" \
     "[[\"DXMT_METALFX_SPATIAL_SWAPCHAIN\",\"\"],[\"DXMT_CONFIG\",fx(\"\")]])" \
     ".concat(\"dxmt\"===v.data||(fr&&\"\"===v.data)?[]:[[\"DXMT_ENABLE_NVEXT\",\"\"]]))})," \
-    "T([\"MTL_HUD_ENABLED\"],\"Metal HUD\",\"1\")," \
+    "(!fr||b!==\"wined3d\")&&T([\"MTL_HUD_ENABLED\"],\"Metal HUD\",\"1\")," \
     "dm&&T([\"D3DM_ENABLE_METALFX\"],\"DLSS\",\"1\")," \
     "(\"dxmt\"===b||(fr&&\"\"===b))&&T([\"DXMT_ENABLE_NVEXT\"],\"DLSS\",\"1\")," \
     "T([\"ROSETTA_ADVERTISE_AVX\"],\"Advertise AVX2 to Rosetta\",\"1\",\"0\")," \
     "T([\"WINEMSYNC\"],\"MSync\",\"1\",\"0\")," \
     "T([\"NOTPROTON_RETINA\"],\"High Resolution\",\"1\",\"0\")" \
     "]},\"gfx\")," \
-    "dx&&(0," RT ".jsx)(" BARREL ".XY," \
-    "{label:\"MetalFX Upscaling (Samples from the resolution the game is set to)\"," \
+    "dx&&cap(\"metalfx\")!==\"unavailable\"&&(0," RT ".jsx)(" BARREL ".XY," \
+    "{label:\"MetalFX Upscaling (Samples from the resolution the game is set to)\"+(cap(\"metalfx\")===\"experimental\"?\" (Experimental)\":\"\")," \
     "children:(0," RT ".jsx)(" BARREL ".m,{rgOptions:U," \
     "selectedOption:sw?(U.find(u=>u.data&&+u.data===fn)||{data:String(fn)}).data:\"\"," \
     "onChange:v=>s([[\"DXMT_METALFX_SPATIAL_SWAPCHAIN\",v.data?\"1\":\"\"],[\"DXMT_CONFIG\",fx(v.data)]])})},\"usf\")," \
-    "(0," RT ".jsx)(" BARREL ".XY,{label:\"Controllers (May break Steam Input. Not recommended)\",children:" \
+    "cap(\"controllers\")!==\"unavailable\"&&(0," RT ".jsx)(" BARREL ".XY,{label:\"Controllers (May break Steam Input. Not recommended)\",children:" \
     "T([\"NOTPROTON_RAW_CONTROLLERS\"],\"Let games read controllers directly\",\"1\",\"\")},\"ctl\")" \
     "]})})}"
 

@@ -99,6 +99,7 @@ for (const form of Object.keys(FORMS)) {
   for (const [tool, config, free] of [
     ['notproton-sikarugir', {}, true],
     ['notproton-freewine', {}, true],
+    ['notproton-freewine-26.3_2', {}, true],
     ['notproton', { legacyFree: true }, true],
     ['', { defaultTool: 'notproton-sikarugir' }, true],
     ['', { defaultTool: 'notproton', legacyFree: true }, true],
@@ -114,7 +115,11 @@ for (const form of Object.keys(FORMS)) {
     if (free) {
       t.ok(backend.props.rgOptions[0].label === 'Automatic (DXMT / D9VK)',
            'free Automatic names its actual graphics choices');
-      ns.find(x => x.props.label === 'DLSS').props.onChange(true);
+      t.ok(backend.props.rgOptions.find(x => x.data === 'dxvk').label.includes('Experimental'),
+           'unqualified renderer is labelled experimental');
+      t.ok(ns.find(x => x.props.label === 'MSync (Experimental)'),
+           'MSync qualification is explicit');
+      ns.find(x => x.props.label === 'DLSS (Experimental)').props.onChange(true);
       t.ok(changes.at(-1).opts.includes('DXMT_ENABLE_NVEXT=1'),
            'free Automatic DLSS writes the DXMT option');
       backend.props.onChange({ data: '' });
