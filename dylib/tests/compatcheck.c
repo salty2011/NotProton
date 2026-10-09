@@ -256,6 +256,12 @@ static void tool_list_cases(void) {
           && strcmp(g_tools[2].dir, "/tools/notproton-26.3") == 0,
           "each tool carries its build and directory");
 
+    tool_entry_t free_tool;
+    char free_line[] = "notproton-sikarugir\tsikarugir-11.0_1\trosetta\tSikarugir 11.0 revision 1";
+    check(parse_tool_line(free_line, &free_tool)
+          && strcmp(free_tool.build, "sikarugir-11.0_1") == 0,
+          "Sikarugir's pinned engine revision can be parsed without losing its identity");
+
     uint8_t *mgr = build_manager(3, -1);
     *(const char **)(entries + np_compat_tool_stride() + COMPAT_TOOL_NAME_OFF) = "notproton-26.3";
     check(np_compat_registered_tool(mgr) == entries + np_compat_tool_stride(),

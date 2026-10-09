@@ -342,9 +342,24 @@ struct StatusView: View {
             }
 
             Section {
+                let free = SikarugirInstaller.build
+                let ready = snapshot.installedRunners.contains { $0.id == free.id }
+                    && !Self.needsRepair(snapshot.runner, build: free.id)
+                StatusRow(
+                    title: "Sikarugir",
+                    value: ready ? "Free compatibility tool ready." : "Free Wine runner with DXMT and DXVK.",
+                    tone: ready ? .ok : .neutral,
+                    detail: ready ? "Select Sikarugir in the game's Steam Compatibility settings." : nil,
+                    action: StatusAction(
+                        label: ready ? "Repair" : "Set Up Free Runner",
+                        isProminent: !ready,
+                        isEnabled: status.canInstall && snapshot.payload.steamComponentsComplete
+                    ) { Task { await status.setUpSikarugir() } },
+                    menu: ready ? [removeCopyAction(free.id, label: "Remove Copy\u{2026}")] : []
+                )
                 crossOverSection(snapshot)
             } header: {
-                Text("CrossOver")
+                Text("Compatibility Tools")
             } footer: {
                 HStack {
                     Spacer()
@@ -665,6 +680,11 @@ struct StatusView: View {
             ) { Task { await status.removeFromList(install) } })
         }
         return items
+    }
+
+    private static func needsRepair(_ state: RunnerState, build: String) -> Bool {
+        if case .unpatched(let builds, _) = state { return builds.contains(build) }
+        return false
     }
 
     private func buildSize(_ build: String) -> String? {

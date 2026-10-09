@@ -339,7 +339,7 @@ static int parse_tool_line(char *line, tool_entry_t *out) {
         field[n++] = tok;
     if (n != 4) return 0;
 
-    if (!is_tool_name(field[0]) || !is_token(field[1], ".-")
+    if (!is_tool_name(field[0]) || !is_token(field[1], "._-")
         || (strcmp(field[2], "fex") != 0 && strcmp(field[2], "rosetta") != 0)
         || !is_display(field[3]))
         return 0;

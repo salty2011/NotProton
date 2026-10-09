@@ -116,6 +116,26 @@ struct PayloadStateTests {
         )
     }
 
+    @Test("Steam installation is complete before compatibility-tool setup")
+    func steamCompleteBeforeRunnerSetup() throws {
+        let bridge = URL.temporaryDirectory.appending(path: "np-core-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: bridge) }
+        for entry in try PayloadManifest.bundled().entries where entry.origin != .patched {
+            let file = bridge.appending(path: entry.path)
+            try FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try Data().write(to: file)
+        }
+        let inspected = PayloadInspector.inspect(bridge: bridge)
+        let payload = state(missing: inspected.missing)
+        #expect(payload.missing.allSatisfy { $0.origin == .patched })
+        #expect(!payload.missing.isEmpty)
+        #expect(payload.steamComponentsComplete)
+        #expect(!payload.isComplete)
+        #expect(!state(missing: [PayloadEntry(origin: .built, path: "steam.exe")]).steamComponentsComplete)
+        #expect(!state(overlay: false).steamComponentsComplete)
+        #expect(!state(problem: "bad manifest").steamComponentsComplete)
+    }
+
     @Test("Everything staged is complete")
     func completeWhenNothingIsWrong() {
         #expect(state().isComplete)

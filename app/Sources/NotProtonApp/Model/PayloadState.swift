@@ -19,6 +19,12 @@ struct PayloadState: Sendable {
             && appinfoPresent && signatureDatabase != nil
     }
 
+    // Patched ntdll files are produced by RunnerSetup, not SteamInstaller.
+    var steamComponentsComplete: Bool {
+        manifestProblem == nil && missing.allSatisfy { $0.origin == .patched }
+            && overlayShimPresent && iconmakerPresent && appinfoPresent && signatureDatabase != nil
+    }
+
     var isEmpty: Bool {
         present == 0 && !overlayShimPresent && !iconmakerPresent && !appinfoPresent
             && signatureDatabase == nil

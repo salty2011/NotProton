@@ -44,8 +44,8 @@ enum RunnerStore {
         let entries = (try? fm.contentsOfDirectory(at: runners, includingPropertiesForKeys: nil)) ?? []
         return entries
             .map(\.lastPathComponent)
-            .filter { $0.hasPrefix("crossover-") }
-            .map { String($0.dropFirst("crossover-".count)) }
+            .filter { $0.hasPrefix("crossover-") || $0.hasPrefix("sikarugir-") }
+            .map { $0.hasPrefix("sikarugir-") ? $0 : String($0.dropFirst("crossover-".count)) }
             .sorted()
     }
 
@@ -130,8 +130,8 @@ enum CompatToolList {
         if !rows.isEmpty { return .nobody }
         let link = runners.appending(path: "current").path(percentEncoded: false)
         if let target = try? FileManager.default.destinationOfSymbolicLink(atPath: link),
-           let id = target.split(separator: "/").first(where: { $0.hasPrefix("crossover-") })
-               .map({ String($0.dropFirst("crossover-".count)) }),
+           let id = target.split(separator: "/").first(where: { $0.hasPrefix("crossover-") || $0.hasPrefix("sikarugir-") })
+               .map({ $0.hasPrefix("sikarugir-") ? String($0) : String($0.dropFirst("crossover-".count)) }),
            ids.contains(id), SupportedRunners.legacyHolders.contains(id) {
             return .build(id)
         }

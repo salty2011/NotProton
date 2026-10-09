@@ -20,6 +20,14 @@ struct CrossOverInstall: Sendable, Identifiable {
     var name: String { bundle.deletingPathExtension().lastPathComponent }
     var crossOverRoot: URL { SupportPaths.crossOverRoot(inBundle: bundle) }
 
+    var statusValue: String {
+        switch support {
+        case .supported(let build): "Build \(build.displayVersion)"
+        case .unsupportedBuild(let version): "Found version \(version), but this build is not supported."
+        case .unreadable: "Found, but its version or Wine loader could not be read."
+        }
+    }
+
     var isPreview: Bool { name.localizedCaseInsensitiveContains("Preview") }
 
     var isUsable: Bool {

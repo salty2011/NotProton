@@ -252,6 +252,18 @@ final class SystemStatus {
         }
     }
 
+    func setUpSikarugir() async {
+        guard canInstall, snapshot?.payload.steamComponentsComplete == true else { return }
+        await perform(from: SikarugirInstaller.step) { progress in
+            let lock = try DeploymentContent.acquireInstallationLock(for: SupportPaths.Steam.app)
+            defer { close(lock) }
+            try await requireUnblockedContent()
+            let result = try await SikarugirInstaller.run(report: progress)
+            let message = result.stagedNothing ? "Sikarugir is already ready." : "Sikarugir successfully set up."
+            return result.toolsChanged && SteamBundle.isRunning ? "\(message) \(Self.toolsRestartHint)" : message
+        }
+    }
+
     func addCrossOver() async {
         let panel = NSOpenPanel()
         panel.canChooseFiles = true

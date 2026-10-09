@@ -11,6 +11,10 @@ enum WineArch: String, Sendable, CaseIterable {
     case aarch64Windows = "aarch64-windows"
 }
 
+enum RunnerProvider: String, Sendable {
+    case crossOver, sikarugir
+}
+
 struct RunnerBuild: Sendable, Equatable, Identifiable {
     // CFBundleVersion, which also names the directory under runners/ and keys
     // the ntdll hash tables. Changing it orphans an installed runner.
@@ -29,10 +33,14 @@ struct RunnerBuild: Sendable, Equatable, Identifiable {
     let patchedNtdll: [WineArch: String]
 
     var tools: [CompatTool] = []
+    var provider: RunnerProvider = .crossOver
 
     var rebuilds: [RunnerRebuild] = []
 
-    var id: String { flavor.map { "\(bundleVersion)-\($0)" } ?? bundleVersion }
+    var id: String {
+        if provider == .sikarugir { return "sikarugir-\(bundleVersion)" }
+        return flavor.map { "\(bundleVersion)-\($0)" } ?? bundleVersion
+    }
 
     func matching(loaderSHA256 hash: String) -> RunnerBuild? {
         if hash == loaderSHA256 { return self }
@@ -40,13 +48,15 @@ struct RunnerBuild: Sendable, Equatable, Identifiable {
         return RunnerBuild(
             bundleVersion: bundleVersion, releaseVersion: releaseVersion, flavor: flavor,
             loaderSHA256: rebuild.loaderSHA256, cleanNtdll: rebuild.cleanNtdll,
-            patchedNtdll: rebuild.patchedNtdll, tools: tools, rebuilds: rebuilds
+            patchedNtdll: rebuild.patchedNtdll, tools: tools, provider: provider, rebuilds: rebuilds
         )
     }
 
     var flavorName: String { flavor?.uppercased() ?? "Rosetta" }
 
-    var displayVersion: String { "\(releaseVersion) \(flavorName)" }
+    var displayVersion: String {
+        provider == .sikarugir ? "Sikarugir \(releaseVersion) (Rosetta)" : "\(releaseVersion) \(flavorName)"
+    }
 }
 
 // The version of CrossOver offered in China has different hashes but is identical in the ways that matter
@@ -88,13 +98,13 @@ enum SupportedRunners {
     // First entry is what windows-only games get when Steam has no mapping.
     static let toolPreference = [
         legacyToolName, "notproton-fex", "notproton-fex-rosetta", "notproton-preview",
-        "notproton-fex-41069", "notproton-fex-rosetta-41069", "notproton-preview-41069", "notproton-26.3",
+        "notproton-fex-41069", "notproton-fex-rosetta-41069", "notproton-preview-41069", "notproton-26.3", "notproton-sikarugir",
     ]
 
     static let legacyToolName = "notproton"
 
     // The only builds that can own the 'notproton' tool name.
-    static let legacyHolders = ["27.0.0.40921-fex", "27.0.0.40921", "27.0.0.41069-fex", "27.0.0.41069"]
+    static let legacyHolders = ["27.0.0.40921-fex", "27.0.0.40921", "27.0.0.41069-fex", "27.0.0.41069", "sikarugir-11.0_1"]
 
     enum LegacyHolder: Equatable, Sendable {
         case build(String)
@@ -229,6 +239,22 @@ enum SupportedRunners {
                 CompatTool(name: "notproton-fex-rosetta-41069", flavor: .rosetta, display: "CrossOver 2026 10 06-ARM64 - Rosetta"),
             ]
         ),
+        RunnerBuild(
+            bundleVersion: "11.0_1",
+            releaseVersion: "11.0 revision 1",
+            flavor: nil,
+            loaderSHA256: "a5816b9614712097b95bde4bcf62e9f0fa56e3f5a596923808ed16db1c189d6c",
+            cleanNtdll: [
+                .x86_64Windows: "654a39115c3fad3d57716f664a96ddcf580f1e76e852e85a6d7d42017c741ff2",
+                .i386Windows: "ae3ce87f0744ea9180fc91371a2ca5a6ddb5e045e7469480b447c8cd0365c20c",
+            ],
+            patchedNtdll: [
+                .x86_64Windows: "6215f00b8c19334329f5e6f508d6b1f2348b0d371c7f13d78de4df32b55bde01",
+                .i386Windows: "2b4b4beb0c2c2db3507ae72869b2b2f3573c6998639c1516e5d6022afc01e6c9",
+            ],
+            tools: [CompatTool(name: "notproton-sikarugir", flavor: .rosetta, display: "Sikarugir 11.0 revision 1 - Rosetta")],
+            provider: .sikarugir
+        ),
     ]
 
     static func build(loaderSHA256 hash: String) -> RunnerBuild? {
@@ -243,9 +269,16 @@ enum SupportedRunners {
         build(id: id)?.displayVersion ?? id
     }
 
+    static var previewList: String {
+        var seen = Set<String>()
+        return all.filter { $0.provider == .crossOver && seen.insert($0.bundleVersion).inserted }
+            .map { "\($0.releaseVersion) (\($0.bundleVersion))" }
+            .joined(separator: ", ")
+    }
+
     static var versionList: String {
         var seen = Set<String>()
-        return all.map(\.releaseVersion)
+        return all.filter { $0.provider == .crossOver }.map(\.releaseVersion)
             .filter { seen.insert($0).inserted }
             .joined(separator: ", ")
     }

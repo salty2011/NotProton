@@ -68,6 +68,8 @@ struct NotProtonApp: App {
 
             Button("Set Up Compatibility Tool") { Task { await status.requestCompatibilityTool() } }
                 .disabled(!status.canInstall || status.setupSource == nil)
+            Button("Set Up Free Runner") { Task { await status.setUpSikarugir() } }
+                .disabled(!status.canInstall || status.snapshot?.payload.steamComponentsComplete != true)
 
             Button("Fetch Valve Binaries") { Task { await status.fetchValveBinaries() } }
                 .disabled(!status.canInstall)
