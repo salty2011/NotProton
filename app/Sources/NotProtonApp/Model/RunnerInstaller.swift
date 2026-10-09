@@ -116,7 +116,8 @@ enum RunnerInstaller {
 
     static func pointCurrent(atBuild build: String, runners: URL = SupportPaths.runners) throws {
         let fm = FileManager.default
-        let relative = "crossover-\(build)/CrossOver"
+        let relative = build.hasPrefix("sikarugir-")
+            ? "\(build)/Wine" : "crossover-\(build)/CrossOver"
         let staging = runners.appending(path: ".current.new")
 
         try? fm.removeItem(at: staging)

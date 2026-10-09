@@ -280,6 +280,18 @@ struct StatusView: View {
             }
 
             Section {
+                let free = SikarugirInstaller.build
+                let activeFree = snapshot.runner.buildIdentifier == free.id
+                StatusRow(
+                    title: "Sikarugir",
+                    value: activeFree ? "Free compatibility tool selected." : "Free Wine runner with DXMT and DXVK.",
+                    tone: activeFree ? .ok : .neutral,
+                    action: StatusAction(
+                        label: activeFree ? "Repair" : "Set Up Free Runner",
+                        isProminent: !activeFree,
+                        isEnabled: status.isIdle && snapshot.payload.steamComponentsComplete
+                    ) { Task { await status.setUpSikarugir() } }
+                )
                 crossOverRows(snapshot)
                 runnerRow(snapshot.runner, payload: snapshot.payload)
                 if snapshot.installedRunners.count > 1 || !snapshot.orphanedRunners.isEmpty
@@ -359,7 +371,7 @@ struct StatusView: View {
                 action: installAction(prominent: true)
             )
         case .installed(let version):
-            if payload.isComplete {
+            if payload.steamComponentsComplete {
                 StatusRow(
                     title: "NotProton",
                     value: "Installed" + (version.map { " (\($0))" } ?? ""),
@@ -368,10 +380,10 @@ struct StatusView: View {
             } else {
                 StatusRow(
                     title: "NotProton",
-                    value: "Installed, but not for this account.",
+                    value: "Installed; Steam components are incomplete.",
                     tone: .warning,
-                    detail: "Steam is set up for NotProton, but this account is missing its "
-                        + "components. Install to add them.",
+                    detail: "Steam is patched, but components in your macOS user folder are missing. "
+                        + "Install to restore them.",
                     action: installAction(prominent: true)
                 )
             }
@@ -425,25 +437,35 @@ struct StatusView: View {
 
     @ViewBuilder
     private func crossOverRows(_ snapshot: StatusSnapshot) -> some View {
-        let installs = snapshot.crossOver.filter(\.isUsable)
+        let installs = snapshot.crossOver
+        let usableCount = installs.filter(\.isUsable).count
         if !installs.isEmpty {
             ForEach(installs) { install in
                 if case .supported(let build) = install.support {
                     StatusRow(
                         title: install.name,
-                        value: "Build \(build.displayVersion)",
+                        value: install.statusValue,
                         tone: snapshot.crossOverLicense[install.id]?.licensed == true ? .ok : .warning,
                         detail: install.bundle.path(percentEncoded: false),
-                        action: installs.count > 1
+                        action: usableCount > 1
                             ? setUpAction(for: install, build: build, snapshot: snapshot)
                             : crossOverAction()
+                    )
+                } else {
+                    StatusRow(
+                        title: install.name,
+                        value: install.statusValue,
+                        tone: .warning,
+                        detail: install.bundle.path(percentEncoded: false)
+                            + "\nRequires CrossOver Preview: " + SupportedRunners.previewList + ".",
+                        action: crossOverAction()
                     )
                 }
             }
         } else {
             StatusRow(
                 title: "CrossOver",
-                value: "Not found. Supported: \(SupportedRunners.versionList).",
+                value: "Not found. Requires CrossOver Preview: \(SupportedRunners.previewList).",
                 tone: .bad,
                 action: crossOverAction()
             )
@@ -550,7 +572,7 @@ struct StatusView: View {
     private func useAction(_ build: RunnerBuild) -> StatusAction {
         StatusAction(
             label: "Use",
-            help: "Launch games with this CrossOver build.",
+            help: "Launch games with this Wine build.",
             isEnabled: status.isIdle
         ) {
             Task { await status.switchRunner(to: build) }
@@ -571,7 +593,12 @@ struct StatusView: View {
     private func runnerAction(
         label: String = "Set Up", replacingExisting: Bool = false
     ) -> StatusAction {
-        StatusAction(
+        if status.snapshot?.runner.buildIdentifier == SikarugirInstaller.build.id {
+            return StatusAction(label: "Repair", isEnabled: status.isIdle) {
+                Task { await status.setUpSikarugir() }
+            }
+        }
+        return StatusAction(
             label: label,
             isProminent: true,
             help: "Set up the compatibility tool from CrossOver.",
@@ -601,9 +628,9 @@ struct StatusView: View {
                     + (supported ? "" : " (unsupported)"),
                 tone: satisfied ? .ok : .warning,
                 action: satisfied
-                    ? runnerAction(
+                    ? (build == SikarugirInstaller.build.id ? nil : runnerAction(
                         label: deployed ? "Copy Again" : "Copy", replacingExisting: true
-                    )
+                    ))
                     : runnerAction()
             )
         case .unpatched(let build, _):
@@ -648,6 +675,14 @@ struct StatusView: View {
         } else if payload.isComplete {
             Section("NotProton Components") {
                 StatusRow(title: "Components", value: "Ready.", tone: .ok)
+            }
+        } else if payload.steamComponentsComplete {
+            Section("NotProton Components") {
+                StatusRow(
+                    title: "Components",
+                    value: "Steam components ready. Compatibility-tool components need setup or repair.",
+                    tone: .warning
+                )
             }
         } else if payload.isEmpty {
             Section("NotProton Components") {

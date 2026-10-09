@@ -42,7 +42,7 @@ enum SupportPaths {
     static var currentRunner: URL { runners.appending(path: "current") }
 
     static func runnerRoot(forBuild build: String, runners: URL = SupportPaths.runners) -> URL {
-        runners.appending(path: "crossover-\(build)")
+        runners.appending(path: build.hasPrefix("sikarugir-") ? build : "crossover-\(build)")
     }
 
     static func crossOverRoot(inBundle bundle: URL) -> URL {
@@ -50,7 +50,8 @@ enum SupportPaths {
     }
 
     static func clonedRoot(forBuild build: String, runners: URL = SupportPaths.runners) -> URL {
-        runnerRoot(forBuild: build, runners: runners).appending(path: "CrossOver")
+        runnerRoot(forBuild: build, runners: runners)
+            .appending(path: build.hasPrefix("sikarugir-") ? "Wine" : "CrossOver")
     }
 
     enum Steam {

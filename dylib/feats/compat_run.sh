@@ -49,6 +49,27 @@ export WINELOADER WINESERVER
 export WINEDLLPATH="$CX_ROOT/lib/wine/x86_64-windows:$wine_unix"
 export PATH="$CX_ROOT/bin:$PATH"
 
+free_runner=0
+if [ -f "$CX_ROOT/notproton-provider" ]; then
+  free_runner=1
+  export SikarugirAppWine11=1
+  export DYLD_FALLBACK_LIBRARY_PATH="$CX_ROOT/Libraries:$CX_ROOT/Libraries/GStreamer.framework/Libraries:/usr/lib"
+  export GST_PLUGIN_PATH="$CX_ROOT/Libraries/GStreamer.framework/Libraries/gstreamer-1.0"
+  export VK_DRIVER_FILES="$CX_ROOT/vulkan/MoltenVK_icd.json"
+  unset WINEDLLPATH_DXMT WINEDLLPATH_DXVK WINEDLLPATH_D9VK WINEDLLPATH_D3DMETAL
+  case "${CX_GRAPHICS_BACKEND:-dxmt}" in
+    ''|dxmt)
+      export WINEDLLPATH_DXMT="$CX_ROOT/renderers/dxmt/wine"
+      export WINEDLLPATH_D9VK="$CX_ROOT/renderers/d9vk/wine"
+      ;;
+    dxvk) export WINEDLLPATH_DXVK="$CX_ROOT/renderers/dxvk/wine" ;;
+    wined3d) ;;
+    *)
+      unsupported_graphics=1
+      ;;
+  esac
+fi
+
 if [ -n "$STEAM_COMPAT_DATA_PATH" ]; then
   log="$STEAM_COMPAT_DATA_PATH/notproton-run.log"
 else
@@ -107,8 +128,8 @@ prefix_machine() {
 
 tool_name() {
   case "$1" in
-    aa64) printf 'the FEX build of CrossOver' ;;
-    8664) printf 'the Rosetta build of CrossOver' ;;
+    aa64) printf 'a FEX Wine runner' ;;
+    8664) printf 'a Rosetta Wine runner' ;;
     *) printf 'an older 32-bit setup' ;;
   esac
 }
@@ -129,6 +150,10 @@ APPLESCRIPT
   fi
   exit 1
 }
+if [ "${unsupported_graphics:-0}" = 1 ]; then
+  osascript -e 'display alert "Graphics backend unavailable" message "Sikarugir supports DXMT, DXVK and WineD3D. Choose Automatic or one of these in the game Compatibility settings."' || true
+  exit 1
+fi
 # Steam cloud related
 merge_user_dir() {
   src=$1
@@ -595,6 +620,23 @@ fi
 cat > "$loader_macos/launcher" <<LAUNCHER
 #!/bin/sh
 export WINELOADER="$WINELOADER"
+# The protected system shell strips inherited DYLD_* variables. Recreate the
+# free runner's library path here, after crossing that boundary.
+if [ -f "\$CX_ROOT/notproton-provider" ]; then
+  export DYLD_FALLBACK_LIBRARY_PATH="\$CX_ROOT/Libraries:\$CX_ROOT/Libraries/GStreamer.framework/Libraries:/usr/lib"
+  export GST_PLUGIN_PATH="\$CX_ROOT/Libraries/GStreamer.framework/Libraries/gstreamer-1.0"
+  # AoE DE rejects Apple's PCI IDs despite a working D3D11 device. Use the
+  # renderer's adapter override; explicit launch options win.
+  if [ "\$SteamAppId" = 1017900 ]; then
+    if [ -n "\$WINEDLLPATH_DXMT" ]; then
+      export DXMT_CONFIG="[AoEDE_s.exe];dxgi.customVendorId=1002;dxgi.customDeviceId=7340;\${DXMT_CONFIG:-}"
+    elif [ -n "\$WINEDLLPATH_DXVK" ] && [ -z "\$DXVK_CONFIG_FILE" ]; then
+      # DXVK 1.10.3 reads a file rather than DXVK_CONFIG environment entries.
+      printf '%s\n' 'dxgi.customVendorId = 1002' 'dxgi.customDeviceId = 7340' > "$loader_root/notproton-dxvk.conf"
+      export DXVK_CONFIG_FILE="Z:$loader_root/notproton-dxvk.conf"
+    fi
+  fi
+fi
 wine_log="$loader_root/notproton-wine.log"
 exec > "\$wine_log" 2>&1
 shim="$HOME/Library/Application Support/notproton/overlay-shim.dylib"
@@ -688,6 +730,15 @@ for name in $(env | sed -nE 's/^(Steam[A-Za-z0-9]*|(CX_GRAPHICS|D3DM_|DXMT_|DXVK
   # shellcheck disable=SC2154 # eval assigns value on the line above
   set -- --env "$name=$value" "$@"
 done
+if [ "$free_runner" = 1 ]; then
+  set -- --env SikarugirAppWine11=1 \
+    --env DYLD_FALLBACK_LIBRARY_PATH="$DYLD_FALLBACK_LIBRARY_PATH" \
+    --env GST_PLUGIN_PATH="$GST_PLUGIN_PATH" \
+    --env VK_DRIVER_FILES="$VK_DRIVER_FILES" \
+    --env WINEDLLPATH_DXMT="${WINEDLLPATH_DXMT:-}" \
+    --env WINEDLLPATH_DXVK="${WINEDLLPATH_DXVK:-}" \
+    --env WINEDLLPATH_D9VK="${WINEDLLPATH_D9VK:-}" "$@"
+fi
 set -- \
   --env CX_ROOT="$CX_ROOT" \
   --env CX_HOME="$CX_HOME" \

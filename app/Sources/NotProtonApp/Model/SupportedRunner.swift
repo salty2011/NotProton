@@ -11,6 +11,10 @@ enum WineArch: String, Sendable, CaseIterable {
     case aarch64Windows = "aarch64-windows"
 }
 
+enum RunnerProvider: String, Sendable {
+    case crossOver, sikarugir
+}
+
 struct RunnerBuild: Sendable, Equatable, Identifiable {
     // CFBundleVersion, which also names the directory under runners/ and keys
     // the ntdll hash tables. Changing it orphans an installed runner.
@@ -28,11 +32,18 @@ struct RunnerBuild: Sendable, Equatable, Identifiable {
     let cleanNtdll: [WineArch: String]
     let patchedNtdll: [WineArch: String]
 
-    var id: String { flavor.map { "\(bundleVersion)-\($0)" } ?? bundleVersion }
+    var provider: RunnerProvider = .crossOver
+
+    var id: String {
+        if provider == .sikarugir { return "sikarugir-\(bundleVersion)" }
+        return flavor.map { "\(bundleVersion)-\($0)" } ?? bundleVersion
+    }
 
     var flavorName: String { flavor?.uppercased() ?? "Rosetta" }
 
-    var displayVersion: String { "\(releaseVersion) \(flavorName)" }
+    var displayVersion: String {
+        provider == .sikarugir ? "Sikarugir \(releaseVersion) (Rosetta)" : "\(releaseVersion) \(flavorName)"
+    }
 }
 
 enum SupportedRunners {
@@ -94,6 +105,21 @@ enum SupportedRunners {
                 .aarch64Windows: "89e4c9e7f0a0a60462c0231ec393168f8bdb04bc8ea1dc22211f25bf3ff2c6b3",
             ]
         ),
+        RunnerBuild(
+            bundleVersion: "11.0_1",
+            releaseVersion: "11.0 revision 1",
+            flavor: nil,
+            loaderSHA256: "a5816b9614712097b95bde4bcf62e9f0fa56e3f5a596923808ed16db1c189d6c",
+            cleanNtdll: [
+                .x86_64Windows: "654a39115c3fad3d57716f664a96ddcf580f1e76e852e85a6d7d42017c741ff2",
+                .i386Windows: "ae3ce87f0744ea9180fc91371a2ca5a6ddb5e045e7469480b447c8cd0365c20c",
+            ],
+            patchedNtdll: [
+                .x86_64Windows: "41b491d939af29ef68bd3406a1034376cd5b385dce12029d137256cf797095bc",
+                .i386Windows: "2b4b4beb0c2c2db3507ae72869b2b2f3573c6998639c1516e5d6022afc01e6c9",
+            ],
+            provider: .sikarugir
+        ),
     ]
 
     static func build(loaderSHA256 hash: String) -> RunnerBuild? {
@@ -108,9 +134,16 @@ enum SupportedRunners {
         build(id: id)?.displayVersion ?? id
     }
 
+    static var previewList: String {
+        var seen = Set<String>()
+        return all.filter { $0.provider == .crossOver && seen.insert($0.bundleVersion).inserted }
+            .map { "\($0.releaseVersion) (\($0.bundleVersion))" }
+            .joined(separator: ", ")
+    }
+
     static var versionList: String {
         var seen = Set<String>()
-        return all.map(\.releaseVersion)
+        return all.filter { $0.provider == .crossOver }.map(\.releaseVersion)
             .filter { seen.insert($0).inserted }
             .joined(separator: ", ")
     }

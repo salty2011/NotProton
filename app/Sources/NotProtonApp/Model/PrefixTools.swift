@@ -41,6 +41,15 @@ enum PrefixTools {
         environment["WINEPREFIX"] = prefix.pfx.path(percentEncoded: false)
         environment["WINEMSYNC"] = syncBackend(prefix: prefix)
         environment["PATH"] = "\(root)/bin:" + (environment["PATH"] ?? "/usr/bin:/bin")
+        if FileManager.default.fileExists(atPath: runner.appending(path: "notproton-provider").path(percentEncoded: false)) {
+            environment["SikarugirAppWine11"] = "1"
+            environment["DYLD_FALLBACK_LIBRARY_PATH"] = "\(root)/Libraries:"
+                + "\(root)/Libraries/GStreamer.framework/Libraries:/usr/lib"
+            environment["GST_PLUGIN_PATH"] = "\(root)/Libraries/GStreamer.framework/Libraries/gstreamer-1.0"
+            environment["VK_DRIVER_FILES"] = "\(root)/vulkan/MoltenVK_icd.json"
+            environment["WINEDLLPATH_DXMT"] = "\(root)/renderers/dxmt/wine"
+            environment["WINEDLLPATH_D9VK"] = "\(root)/renderers/d9vk/wine"
+        }
         return environment
     }
 

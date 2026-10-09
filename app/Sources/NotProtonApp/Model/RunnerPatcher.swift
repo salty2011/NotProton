@@ -38,7 +38,7 @@ enum RunnerPatcher {
         var outcome = Outcome()
         outcome.ntdll = try installNtdll(build: build, root: root, bridge: bridge)
         outcome.builtins = try installBuiltins(root: root, bridge: bridge)
-        outcome.loaders = try grantLoaderEntitlement(root: root)
+        outcome.loaders = try grantLoaderEntitlement(root: root, provider: build.provider)
         return outcome
     }
 
@@ -46,6 +46,7 @@ enum RunnerPatcher {
         build: RunnerBuild, root: URL, bridge: URL = SupportPaths.bridge
     ) -> [String] {
         var wrong: [String] = []
+        if build.provider == .sikarugir { wrong += SikarugirInstaller.problems(in: root) }
         for arch in WineArch.allCases {
             guard let expected = build.patchedNtdll[arch] else { continue }
             let live = root.appending(path: "lib/wine/\(arch.rawValue)/ntdll.dll")
@@ -136,7 +137,7 @@ enum RunnerPatcher {
         return installed
     }
 
-    private static func grantLoaderEntitlement(root: URL) throws -> [String] {
+    private static func grantLoaderEntitlement(root: URL, provider: RunnerProvider) throws -> [String] {
         var signed: [String] = []
 
         for loader in unixLoaders(in: root) {
@@ -145,7 +146,7 @@ enum RunnerPatcher {
             if existing?.contains(dyldEntitlement) == true,
                signatureIsValid(signingTarget(for: loader)) { continue }
 
-            guard let existing, !existing.isEmpty else {
+            guard provider == .sikarugir || (existing?.isEmpty == false) else {
                 throw StepFailure(
                     step: step,
                     detail: "\(name(of: loader)) carries no entitlements to extend."
@@ -153,7 +154,9 @@ enum RunnerPatcher {
             }
 
             do {
-                try sign(loader, addingTo: existing)
+                let base = existing.flatMap { $0.isEmpty ? nil : $0 }
+                    ?? "<?xml version=\"1.0\"?><plist version=\"1.0\"><dict/></plist>"
+                try sign(loader, addingTo: base, provider: provider)
             } catch {
                 restoreClean(loader)
                 throw error
@@ -191,7 +194,7 @@ enum RunnerPatcher {
         return result.stdout
     }
 
-    private static func sign(_ loader: URL, addingTo existing: String) throws {
+    private static func sign(_ loader: URL, addingTo existing: String, provider: RunnerProvider) throws {
         let plist = FileManager.default.temporaryDirectory
             .appending(path: "np-entitlements-\(UUID().uuidString).plist")
         defer { try? FileManager.default.removeItem(at: plist) }
@@ -200,6 +203,13 @@ enum RunnerPatcher {
         _ = try Shell.run("/usr/libexec/PlistBuddy", [
             "-c", "Add :\(dyldEntitlement) bool true", plist.path(percentEncoded: false),
         ])
+        if provider == .sikarugir {
+            for key in ["allow-jit", "allow-unsigned-executable-memory", "disable-library-validation"] {
+                _ = try Shell.run("/usr/libexec/PlistBuddy", [
+                    "-c", "Add :com.apple.security.cs.\(key) bool true", plist.path(percentEncoded: false),
+                ])
+            }
+        }
 
         try keepClean(loader)
         let target = signingTarget(for: loader)

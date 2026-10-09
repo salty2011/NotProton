@@ -266,6 +266,14 @@ final class SystemStatus {
         }
     }
 
+    func setUpSikarugir() async {
+        guard isIdle else { return }
+        await perform(from: "Installing free compatibility tool") { progress in
+            let result = try await SikarugirInstaller.run(report: progress)
+            return "Now using \(result.build.displayVersion)."
+        }
+    }
+
     var chosenCrossOver: URL? { CrossOverSource.manualBundle }
 
     // Lets the user pick a copy of CrossOver the search did not find/auto-select

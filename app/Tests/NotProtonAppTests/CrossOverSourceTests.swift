@@ -26,6 +26,13 @@ struct CrossOverSourceTests {
         sorted(installs).first(where: \.isUsable)
     }
 
+    @Test("A detected unsupported installation is reported as found")
+    func unsupportedInstallStatus() {
+        let stable = install("CrossOver", .unsupportedBuild("26.3"))
+        #expect(stable.statusValue == "Found version 26.3, but this build is not supported.")
+        #expect(install("CrossOver Preview", .unreadable).statusValue == "Found, but its version or Wine loader could not be read.")
+    }
+
     @Test("A usable Preview is chosen ahead of a usable stable CrossOver")
     func prefersUsablePreview() {
         let build = SupportedRunners.build(id: "27.0.0.40921")!

@@ -59,6 +59,9 @@ struct io_status { u32 status; u32 information; };
 #define WM_FLAGS(wm)     ( (u32 *)((u8 *)(wm) + 0x34))
 
 #define LDR_DONT_RESOLVE_REFS  0x00000002
+#ifndef DONT_RESOLVE_FLAG
+#define DONT_RESOLVE_FLAG 0x00000002
+#endif
 #define LDR_DONT_CALL_DLLMAIN  0x20000000
 
 static const u16 name_lsteam[] = {'l','s','t','e','a','m','c','l','i','e','n','t','.','d','l','l',0};
@@ -253,7 +256,7 @@ void detour_build_module32(struct ctx *c, void *wm, void *fp)
     if (is_steamclient32)
     {
         *WM_FLAGS(wm)  |= LDR_DONT_RESOLVE_REFS;
-        *ARG_FLAGS(fp) |= LDR_DONT_RESOLVE_REFS;
+        *ARG_FLAGS(fp) |= DONT_RESOLVE_FLAG;
         restore_image_base(c, wm, sc);
     }
     else

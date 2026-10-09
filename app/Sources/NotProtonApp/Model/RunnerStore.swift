@@ -66,8 +66,9 @@ enum RunnerStore {
     }
 
     static func buildIdentifier(inPath path: String) -> String? {
-        for component in path.split(separator: "/") where component.hasPrefix("crossover-") {
-            return String(component.dropFirst("crossover-".count))
+        for component in path.split(separator: "/") {
+            if component.hasPrefix("sikarugir-") { return String(component) }
+            if component.hasPrefix("crossover-") { return String(component.dropFirst("crossover-".count)) }
         }
         return nil
     }
@@ -77,8 +78,8 @@ enum RunnerStore {
         let entries = (try? fm.contentsOfDirectory(at: runners, includingPropertiesForKeys: nil)) ?? []
         return entries
             .map(\.lastPathComponent)
-            .filter { $0.hasPrefix("crossover-") }
-            .map { String($0.dropFirst("crossover-".count)) }
+            .filter { $0.hasPrefix("crossover-") || $0.hasPrefix("sikarugir-") }
+            .map { $0.hasPrefix("sikarugir-") ? $0 : String($0.dropFirst("crossover-".count)) }
             .sorted()
     }
 

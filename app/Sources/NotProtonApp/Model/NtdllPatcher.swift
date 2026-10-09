@@ -51,6 +51,27 @@ enum NtdllPatcher {
 
 
     static let byBuild: [String: [NtdllPatch]] = [
+        "sikarugir-11.0_1": [
+            NtdllPatch(
+                arch: .x86_64Windows,
+                payloadResource: "detour2-sikarugir11",
+                payloadSHA256: "89063e0d3dc8c74c15a32b4cca82532b52c82ec11245821a91cb20db7a36fe97",
+                caveRVA: 0x70485, payloadRVA: 0x70490,
+                hooks: [NtdllHook(rva: 0x34fc2, stolen: [0x48, 0x8b, 0x85, 0x90, 0, 0, 0])],
+                caveSize: 2939, cavePad: 0xcc,
+                machine: 0x8664, magic: 0x20b, imageBase: 0x1_7000_0000
+            ),
+            NtdllPatch(
+                arch: .i386Windows,
+                payloadResource: "detour32-sikarugir11",
+                payloadSHA256: "4c114a80fb1c26fa32134dba02014691e5260bbc8a8091ff280f67f5b21846eb",
+                caveRVA: 0x9a000, payloadRVA: 0x9a000,
+                hooks: [NtdllHook(rva: 0x2eb00, stolen: [0x8b, 0x45, 0x14, 0xa8, 1])],
+                caveSize: 4096, cavePad: 0,
+                machine: 0x14c, magic: 0x10b, imageBase: 0x7bc0_0000,
+                placement: .section
+            ),
+        ],
         "27.0.0.40921": [
             NtdllPatch(
                 arch: .x86_64Windows,
