@@ -75,6 +75,10 @@ enum SteamToolSelection {
         try locate(path + [appID], in: entries(text)).map { String(text[$0.range]) }
     }
 
+    static func name(_ appID: String, inMapping text: String) throws -> String? {
+        try locate([appID, "name"], in: entries(text))?.value
+    }
+
     static func mappedGames(to names: Set<String>, in text: String) throws -> [String] {
         guard let section = try locate(path, in: entries(text)) else { return [] }
         var result: [String] = []

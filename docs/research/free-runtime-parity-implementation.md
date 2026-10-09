@@ -17,7 +17,9 @@ parity. FEX and free D3D12 remain outside this release.
 - **Migration and recovery:** With Steam and the game stopped, Prefixes → context
   menu → Change Runtime retains the old prefix, identity and game mapping before
   rebuilding. Prefix Backups can restore prefix plus selection or prefix only.
-  Unknown older selection records require explicit choice in Steam. Removal
+  Inherited selections snapshot the resolved engine; changed legacy aliases require
+  prefix-only restoration and explicit selection. Unknown older selection records
+  require explicit choice in Steam. Removal
   refuses runtimes still selected by games or the Steam default.
 - **Capabilities:** `runtime/policy.json` generates the Swift, C and shell views of
   each exact runtime. Automatic selects DXMT plus the separate D9VK overlay.
@@ -34,7 +36,7 @@ parity. FEX and free D3D12 remain outside this release.
 
 ## Validation and limits
 
-The final Swift suite passed 510 tests in 62 suites. An additional real-archive
+The final Swift suite passed 512 tests in 62 suites. An additional real-archive
 qualification passed 83 focused tests, including dependency-loss health detection.
 Eleven Python package tests, shell/native panel and launch checks, generated-policy
 checks and workflow lint passed. The signed app built successfully.

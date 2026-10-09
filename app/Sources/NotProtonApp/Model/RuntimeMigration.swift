@@ -10,13 +10,14 @@ enum RuntimeMigration {
         let buildRecord: Data?
         let selectionRecorded: Bool
         let mapping: String?
+        let resolvedBuild: String?
     }
 
     static func annotate(backup: URL, for prefix: WinePrefix) throws {
         let record = prefix.root.appending(path: PrefixTools.buildRecordName)
         let state = State(schemaVersion: 1, appID: prefix.appID,
             buildRecord: FileManager.default.fileExists(atPath: record.path) ? try Data(contentsOf: record) : nil,
-            selectionRecorded: false, mapping: nil)
+            selectionRecorded: false, mapping: nil, resolvedBuild: PrefixTools.lastBuild(of: prefix)?.build)
         try JSONEncoder().encode(state).write(to: backup.appending(path: stateName), options: .atomic)
     }
 
@@ -34,6 +35,10 @@ enum RuntimeMigration {
     static func migrate(
         _ prefix: WinePrefix, to tool: InstalledTool, config: URL = SteamToolSelection.file,
         steamRunning: () -> Bool = { SteamBundle.isRunning },
+        currentTool: (WinePrefix) -> InstalledTool? = {
+            guard let record = PrefixTools.lastBuild(of: $0), !record.build.isEmpty else { return nil }
+            return PrefixTools.tool(for: $0)
+        },
         rebuild: (WinePrefix, InstalledTool) throws -> Void = { _ = try PrefixTools.recreate($0, as: $1, keepBackup: false) }
     ) throws -> URL {
         try preflight(prefix, steamRunning: steamRunning)
@@ -45,10 +50,15 @@ enum RuntimeMigration {
         }
         let next = try SteamToolSelection.replacing(prefix.appID, mapping: SteamToolSelection.mapping(prefix.appID, tool: tool), in: text)
         let record = prefix.root.appending(path: PrefixTools.buildRecordName)
+        let previousTool = currentTool(prefix)
+        let previousMapping = try SteamToolSelection.mapping(prefix.appID, in: text)
         let state = State(schemaVersion: 1, appID: prefix.appID,
             buildRecord: FileManager.default.fileExists(atPath: record.path) ? try Data(contentsOf: record) : nil,
-            selectionRecorded: true,
-            mapping: try SteamToolSelection.mapping(prefix.appID, in: text))
+            selectionRecorded: previousMapping != nil || previousTool != nil,
+            // Snapshot the effective engine for inherited selections. Steam's
+            // default may change before rollback; never rewrite that global default.
+            mapping: try previousMapping ?? previousTool.map { try SteamToolSelection.mapping(prefix.appID, tool: $0) },
+            resolvedBuild: previousTool?.build ?? PrefixTools.lastBuild(of: prefix)?.build)
         let backup = try PrefixTools.backUp(prefix)
         var attemptedRebuild = false
         do {
@@ -76,7 +86,8 @@ enum RuntimeMigration {
     static func restore(
         backup: URL, for prefix: WinePrefix, config: URL = SteamToolSelection.file,
         restoreMapping: Bool = true, steamRunning: () -> Bool = { SteamBundle.isRunning },
-        runtimeAvailable: (String) -> Bool = { id in CompatToolList.installed().contains { $0.build == id } }
+        runtimeAvailable: (String) -> Bool = { id in CompatToolList.installed().contains { $0.build == id } },
+        selectedBuild: (String) -> String? = { name in CompatToolList.installed().first { $0.tool.name == name }?.build }
     ) throws -> URL? {
         try preflight(prefix, steamRunning: steamRunning)
         let lock = restoreMapping ? try DeploymentContent.acquireInstallationLock(for: config) : nil
@@ -91,13 +102,19 @@ enum RuntimeMigration {
         if let state, state.schemaVersion != 1 || state.appID != prefix.appID {
             throw StepFailure(step: "Restore prefix", detail: "This backup belongs to another game or format.")
         }
-        if restoreMapping, state?.selectionRecorded != true {
+        if restoreMapping, state?.selectionRecorded != true || (state?.mapping == nil && state?.buildRecord == nil && state?.resolvedBuild == nil) {
             throw StepFailure(step: "Restore prefix", detail: "This older backup has no runtime selection record. Use Restore Prefix Only, then select its original runtime in Steam.")
         }
-        if restoreMapping, let record = state?.buildRecord,
-           let build = String(data: record, encoding: .utf8)?.split(separator: "\n").first,
-           !runtimeAvailable(String(build)) {
+        let savedBuild = state?.resolvedBuild ?? state?.buildRecord.flatMap { String(data: $0, encoding: .utf8)?.split(separator: "\n").first.map(String.init) }
+        if restoreMapping, savedBuild?.isEmpty != false {
+            throw StepFailure(step: "Restore prefix", detail: "This backup has no verified runtime identity. Use Restore Prefix Only, then select its original runtime in Steam.")
+        }
+        if restoreMapping, let build = savedBuild, !runtimeAvailable(build) {
             throw StepFailure(step: "Restore prefix", detail: "The backup needs runtime \(build), which is no longer installed. Reinstall that revision before restoring its prefix and selection.")
+        }
+        if restoreMapping, let build = savedBuild, let mapping = state?.mapping,
+           let name = try SteamToolSelection.name(prefix.appID, inMapping: mapping), selectedBuild(name) != build {
+            throw StepFailure(step: "Restore prefix", detail: "The retained tool name \(name) no longer selects runtime \(build). Use Restore Prefix Only, then choose that installed revision explicitly in Steam.")
         }
         let originalConfig = restoreMapping ? try Data(contentsOf: config) : nil
         if let originalConfig, String(data: originalConfig, encoding: .utf8) == nil {
@@ -120,7 +137,7 @@ enum RuntimeMigration {
                 return try SteamToolSelection.mapping(prefix.appID, in: text)
             }
             let retainedState = State(schemaVersion: 1, appID: prefix.appID, buildRecord: oldRecord,
-                selectionRecorded: originalConfig != nil, mapping: currentMapping)
+                selectionRecorded: originalConfig != nil, mapping: currentMapping, resolvedBuild: PrefixTools.lastBuild(of: prefix)?.build)
             try JSONEncoder().encode(retainedState).write(to: retained.appending(path: stateName), options: .atomic)
         }
         do {

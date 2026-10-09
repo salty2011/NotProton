@@ -48,7 +48,10 @@ struct RuntimeMigrationTests {
         #expect(throws: StepFailure.self) {
             try RuntimeMigration.restore(backup: backup, for: f.prefix, config: f.config, steamRunning: { false }, runtimeAvailable: { _ in false })
         }
-        let retained = try #require(try RuntimeMigration.restore(backup: backup, for: f.prefix, config: f.config, steamRunning: { false }, runtimeAvailable: { _ in true }))
+        #expect(throws: StepFailure.self) {
+            try RuntimeMigration.restore(backup: backup, for: f.prefix, config: f.config, steamRunning: { false }, runtimeAvailable: { _ in true }, selectedBuild: { _ in f.tool.build })
+        }
+        let retained = try #require(try RuntimeMigration.restore(backup: backup, for: f.prefix, config: f.config, steamRunning: { false }, runtimeAvailable: { _ in true }, selectedBuild: { _ in "freewine-26.3_1" }))
         #expect(try Data(contentsOf: f.config) == f.originalConfig)
         #expect(try Data(contentsOf: f.prefix.root.appending(path: PrefixTools.buildRecordName)) == f.oldRecord)
         #expect(try String(contentsOf: f.prefix.pfx.appending(path: "user.reg"), encoding: .utf8) == "old saves and registry")
@@ -60,10 +63,10 @@ struct RuntimeMigrationTests {
     func failedRebuild() throws {
         let f = try Fixture(); defer { f.cleanup() }
         #expect(throws: StepFailure.self) {
-            try RuntimeMigration.migrate(f.prefix, to: f.tool, config: f.config, steamRunning: { false }) { prefix, tool in
+            try RuntimeMigration.migrate(f.prefix, to: f.tool, config: f.config, steamRunning: { false }, rebuild: { prefix, tool in
                 try f.rebuild(prefix, tool)
                 throw StepFailure(step: "fixture", detail: "wineboot failed")
-            }
+            })
         }
         #expect(try Data(contentsOf: f.config) == f.originalConfig)
         #expect(PrefixTools.buildRecord(of: f.prefix)?.build == "freewine-26.3_1")
@@ -81,18 +84,55 @@ struct RuntimeMigrationTests {
         #expect(try Data(contentsOf: f.config) == f.originalConfig)
     }
 
+    @Test("An inherited legacy prefix restores its resolved engine even after Steam's default changes")
+    func legacyInheritedRuntime() throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let fm = FileManager.default
+        try fm.removeItem(at: f.prefix.root.appending(path: PrefixTools.buildRecordName))
+        let oldBuild = try #require(SupportedRunners.build(id: "sikarugir-11.0_1"))
+        let old = InstalledTool(tool: oldBuild.tools[0], build: oldBuild.id)
+        let inherited = try SteamToolSelection.replacing(f.prefix.appID, mapping: nil, in: String(decoding: f.originalConfig, as: UTF8.self))
+        try Data(inherited.utf8).write(to: f.config)
+        let backup = try RuntimeMigration.migrate(f.prefix, to: f.tool, config: f.config, steamRunning: { false }, currentTool: { _ in old }, rebuild: f.rebuild)
+        let changedDefault = try SteamToolSelection.replacing("0", mapping: try SteamToolSelection.mapping("0", tool: f.tool), in: String(contentsOf: f.config, encoding: .utf8))
+        try Data(changedDefault.utf8).write(to: f.config)
+        #expect(throws: StepFailure.self) {
+            try RuntimeMigration.restore(backup: backup, for: f.prefix, config: f.config, steamRunning: { false }, runtimeAvailable: { _ in false })
+        }
+        _ = try RuntimeMigration.restore(backup: backup, for: f.prefix, config: f.config, steamRunning: { false }, runtimeAvailable: { $0 == old.build }, selectedBuild: { _ in old.build })
+        let restored = try String(contentsOf: f.config, encoding: .utf8)
+        #expect(try SteamToolSelection.mapping(f.prefix.appID, in: restored)?.contains(old.tool.name) == true)
+        #expect(try SteamToolSelection.mapping("0", in: restored)?.contains(f.tool.tool.name) == true)
+        #expect(!fm.fileExists(atPath: f.prefix.root.appending(path: PrefixTools.buildRecordName).path))
+        #expect(try String(contentsOf: f.prefix.pfx.appending(path: "user.reg"), encoding: .utf8) == "old saves and registry")
+    }
+
     @Test("Concurrent configuration changes are retained while the rebuilt prefix rolls back")
     func concurrentSelection() throws {
         let f = try Fixture(); defer { f.cleanup() }
         let changed = String(decoding: f.originalConfig, as: UTF8.self) + "\n\"Concurrent\" \"retained\"\n"
         #expect(throws: StepFailure.self) {
-            try RuntimeMigration.migrate(f.prefix, to: f.tool, config: f.config, steamRunning: { false }) { prefix, tool in
+            try RuntimeMigration.migrate(f.prefix, to: f.tool, config: f.config, steamRunning: { false }, rebuild: { prefix, tool in
                 try f.rebuild(prefix, tool)
                 try Data(changed.utf8).write(to: f.config)
-            }
+            })
         }
         #expect(try String(contentsOf: f.config, encoding: .utf8) == changed)
         #expect(PrefixTools.buildRecord(of: f.prefix)?.build == "freewine-26.3_1")
+        #expect(try String(contentsOf: f.prefix.pfx.appending(path: "user.reg"), encoding: .utf8) == "old saves and registry")
+    }
+
+    @Test("An unidentifiable previous engine requires prefix-only restoration")
+    func unknownPreviousRuntime() throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        try FileManager.default.removeItem(at: f.prefix.root.appending(path: PrefixTools.buildRecordName))
+        let backup = try RuntimeMigration.migrate(f.prefix, to: f.tool, config: f.config, steamRunning: { false }, currentTool: { _ in nil }, rebuild: f.rebuild)
+        #expect(throws: StepFailure.self) {
+            try RuntimeMigration.restore(backup: backup, for: f.prefix, config: f.config, steamRunning: { false }, runtimeAvailable: { _ in true })
+        }
+        let candidateConfig = try Data(contentsOf: f.config)
+        _ = try RuntimeMigration.restore(backup: backup, for: f.prefix, config: f.config, restoreMapping: false, steamRunning: { false })
+        #expect(try Data(contentsOf: f.config) == candidateConfig)
         #expect(try String(contentsOf: f.prefix.pfx.appending(path: "user.reg"), encoding: .utf8) == "old saves and registry")
     }
 
@@ -102,7 +142,7 @@ struct RuntimeMigrationTests {
         let backup = try RuntimeMigration.migrate(f.prefix, to: f.tool, config: f.config, steamRunning: { false }, rebuild: f.rebuild)
         try FileManager.default.removeItem(at: f.prefix.pfx)
         #expect(PrefixStore.all(libraries: [f.prefix.library]).map(\.appID) == [f.prefix.appID])
-        #expect(try RuntimeMigration.restore(backup: backup, for: f.prefix, config: f.config, steamRunning: { false }, runtimeAvailable: { _ in true }) == nil)
+        #expect(try RuntimeMigration.restore(backup: backup, for: f.prefix, config: f.config, steamRunning: { false }, runtimeAvailable: { _ in true }, selectedBuild: { _ in "freewine-26.3_1" }) == nil)
         #expect(try String(contentsOf: f.prefix.pfx.appending(path: "user.reg"), encoding: .utf8) == "old saves and registry")
         #expect(try Data(contentsOf: f.config) == f.originalConfig)
     }
