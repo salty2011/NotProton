@@ -163,3 +163,36 @@ The generated `distributionReady` field remains false. Do not publish a local
 binary merely because its namespace/TLS tests pass. See the new
 [measured media baseline](../docs/research/free-runtime-media-baseline.md) for the
 separate playback and game acceptance gates.
+
+## Profiles, settings and media trials
+
+`policy.json` is the reviewed capability table for exact runtime identities.
+`python3 runtime/generate-policy.py --check` checks its Swift, native-panel and
+launcher projections. `game-profiles.json` holds versioned, typed defaults;
+`python3 runtime/generate-profiles.py --check` checks the app/helper/panel views.
+The AoE adapter profile matches the Steam app, executable PE architecture,
+engine revision and renderer. Explicit renderer settings win per key. Disable or
+reset profile selection in Steam Compatibility settings; local controls are also
+available in the app's prefix menu. Reset retains user renderer files/options.
+
+The dependency recipe catalog is intentionally empty. Steam install scripts run
+first. Add a pinned Winetricks recipe only after documenting a real missing
+requirement, supported architecture, detection and postcondition. Fixture tests
+exercise preparation, retained backups, failed postconditions and retry/rebuild
+invalidation. Receipts do not authorize absent modules.
+
+For independent media trials, use a new workspace with
+`runtime/build.py --media-trial coreaudio` or `--media-trial video` and the normal
+build arguments. `media-candidates.json` pins patch bytes and attribution. Each
+trial changes one source patch; package it under a new identity. Never promote a
+candidate solely because it builds or runs a probe. Keep cold/warm media results,
+actual game observations and longer-session regression evidence separate.
+
+App package installation retains a verified cache for offline reuse. Downloading
+requires a distribution-ready, approved catalog URL; current private candidates
+remain local imports while corresponding dependency sources/notices are reviewed.
+Upgrade with Change Runtime with Backup while Steam is closed. Prefix Backups can
+restore both the old prefix and its recorded per-game tool selection; older
+backups support prefix-only restoration. Reinstall a removed revision before
+restoring its selection. Existing mappings and the global default remain unchanged
+when installing a package beside the previous runtime.

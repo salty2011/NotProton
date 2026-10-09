@@ -1,6 +1,7 @@
 // Enables Steam Play in the UI/enables the Compatibility tab in game properties
 #include "webpatch.h"
 #include "runtime_policy.h"
+#include "game_profiles.h"
 #include "../util/log.h"
 
 #include <stdlib.h>
@@ -229,6 +230,7 @@ static int out_expand(np_out_t *o, const char *replace, const np_cap_t *caps) {
     "if(t.unAppID<2147483648&&(t.vecPlatforms||[]).indexOf(\"osx\")>=0" \
     "&&!t.strCompatToolName)return null;" \
     "if(fr&&!rp)return(0," RT ".jsx)(\"div\",{className:\"MSCXPanel\",children:\"Update NotProton to configure this runtime version.\"});" \
+    "const P=(" NP_GAME_PROFILES ").find(p=>p.appID===String(t.unAppID)&&rp&&p.runtimes.includes(rp.id)&&p.renderers.includes(b||rp.automatic));" \
     "return(0," RT ".jsx)(\"div\",{className:\"MSCXPanel\",children:(0," RT ".jsxs)(" RT ".Fragment,{children:[" \
     "(0," RT ".jsx)(\"style\",{children:" NP_CX_OPTIONS_CSS "})," \
     "(0," RT ".jsxs)(" BARREL ".XY,{label:\"Graphics\",children:[" \
@@ -251,7 +253,11 @@ static int out_expand(np_out_t *o, const char *replace, const np_cap_t *caps) {
     "selectedOption:sw?(U.find(u=>u.data&&+u.data===fn)||{data:String(fn)}).data:\"\"," \
     "onChange:v=>s([[\"DXMT_METALFX_SPATIAL_SWAPCHAIN\",v.data?\"1\":\"\"],[\"DXMT_CONFIG\",fx(v.data)]])})},\"usf\")," \
     "cap(\"controllers\")!==\"unavailable\"&&(0," RT ".jsx)(" BARREL ".XY,{label:\"Controllers (May break Steam Input. Not recommended)\",children:" \
-    "T([\"NOTPROTON_RAW_CONTROLLERS\"],\"Let games read controllers directly\",\"1\",\"\")},\"ctl\")" \
+    "T([\"NOTPROTON_RAW_CONTROLLERS\"],\"Let games read controllers directly\",\"1\",\"\")},\"ctl\")," \
+    "P&&(0," RT ".jsxs)(" BARREL ".XY,{label:\"Game profile: \"+P.id+\" v\"+P.revision,children:[" \
+    "(0," RT ".jsx)(\"div\",{children:P.rationale+\" Applies to \"+P.executable+\"; explicit settings win per key.\"})," \
+    "(0," RT ".jsx)(" BARREL ".Yh,{className:\"MSCXRow\",label:\"Disable this game's profile\",checked:g(\"NOTPROTON_DISABLE_PROFILES\")===\"1\",onChange:v=>s([[\"NOTPROTON_DISABLE_PROFILES\",v?\"1\":\"\"]])})," \
+    "(0," RT ".jsx)(\"button\",{children:\"Reset profile selection\",onClick:()=>s([[\"NOTPROTON_DISABLE_PROFILES\",\"\"]])})]},\"profile\")" \
     "]})})}"
 
 #define NP_CX_OPTIONS_COMPONENT \

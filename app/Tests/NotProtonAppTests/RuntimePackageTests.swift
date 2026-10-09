@@ -76,7 +76,7 @@ struct RuntimePackageTests {
         try Data("unapproved".utf8).write(to: fixture.archive)
         let runners = fixture.directory.appending(path: "runners")
         #expect(throws: StepFailure.self) {
-            try RuntimePackageInstaller.install(archive: fixture.archive, package: fixture.package, runners: runners)
+            try RuntimePackageInstaller.install(archive: fixture.archive, package: fixture.package, appVersion: "1.1.3", runners: runners)
         }
         #expect(!FileManager.default.fileExists(atPath: runners.path))
     }
@@ -91,7 +91,7 @@ struct RuntimePackageTests {
         try existing.write(to: tools)
         var prepared = false
         #expect(throws: StepFailure.self) {
-            try RuntimePackageInstaller.install(archive: fixture.archive, package: fixture.package,
+            try RuntimePackageInstaller.install(archive: fixture.archive, package: fixture.package, appVersion: "1.1.3",
                 runners: runners, bridge: bridge, toolList: tools,
                 compatTools: fixture.directory.appending(path: "compatibilitytools.d"),
                 prepare: { _, _, _, _, _ in
@@ -114,7 +114,7 @@ struct RuntimePackageTests {
         let blocked = fixture.directory.appending(path: "blocked")
         try Data("not a directory".utf8).write(to: blocked)
         #expect(throws: (any Error).self) {
-            try RuntimePackageInstaller.install(archive: fixture.archive, package: fixture.package,
+            try RuntimePackageInstaller.install(archive: fixture.archive, package: fixture.package, appVersion: "1.1.3",
                 runners: runners, bridge: bridge, toolList: blocked.appending(path: "tools"), compatTools: tools,
                 prepare: prepareFixture)
         }
@@ -133,6 +133,22 @@ struct RuntimePackageTests {
         #expect(throws: StepFailure.self) { try fixture.package.verifyPayload(at: payload) }
     }
 
+    @Test("Approved local packages are cached for offline setup; damaged caches and newer app requirements are refused")
+    func offlineCache() async throws {
+        let fixture = try Fixture(); defer { fixture.cleanup() }
+        let cache = fixture.directory.appending(path: "cache")
+        let copy = try RuntimePackageDownload.remember(fixture.archive, package: fixture.package, in: cache)
+        try FileManager.default.removeItem(at: fixture.archive)
+        #expect(try await RuntimePackageDownload.obtain(fixture.package, in: cache) == copy)
+        try Data("damaged".utf8).write(to: copy)
+        await #expect(throws: StepFailure.self) { try await RuntimePackageDownload.obtain(fixture.package, in: cache) }
+        #expect(throws: StepFailure.self) {
+            try RuntimePackageInstaller.install(archive: copy, package: fixture.package, appVersion: "1.0.0",
+                runners: fixture.directory.appending(path: "runners"))
+        }
+        #expect(!FileManager.default.fileExists(atPath: fixture.directory.appending(path: "runners").path))
+    }
+
     @Test("Real package installs and prepares without an installed runtime", .enabled(if: ProcessInfo.processInfo.environment["NP_FREE_RUNTIME_PACKAGE"] != nil))
     func realPackage() throws {
         let source = try #require(ProcessInfo.processInfo.environment["NP_FREE_RUNTIME_PACKAGE"])
@@ -144,7 +160,7 @@ struct RuntimePackageTests {
         let bridge = dir.appending(path: "bridge")
         let list = dir.appending(path: "tools")
         let tools = dir.appending(path: "compatibilitytools.d")
-        let outcome = try RuntimePackageInstaller.install(archive: URL(filePath: source), package: package,
+        let outcome = try RuntimePackageInstaller.install(archive: URL(filePath: source), package: package, appVersion: "1.1.3",
             runners: runners, bridge: bridge, toolList: list, compatTools: tools)
         #expect(outcome.build.id == package.id)
         let root = SupportPaths.clonedRoot(forBuild: package.id, runners: runners)
@@ -154,5 +170,7 @@ struct RuntimePackageTests {
         #expect(CompatToolList.installed(runners: runners, file: list).map(\.build) == [package.id])
         #expect(fm.fileExists(atPath: tools.appending(path: "notproton-\(package.id)/run").path))
         #expect(!fm.fileExists(atPath: runners.appending(path: "sikarugir-11.0_1").path))
+        try fm.removeItem(at: root.appending(path: "Libraries/GStreamer.framework/Libraries/gstreamer-1.0/libgstlibav.dylib"))
+        #expect(package.problems(in: root).contains { $0.contains("libgstlibav") })
     }
 }

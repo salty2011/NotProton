@@ -363,7 +363,7 @@ def build(args):
         verify(stage)
         archive = output / (args.id + '.tar.xz')
         temporary_archive = Path(temporary) / archive.name
-        with tarfile.open(temporary_archive, 'w:xz') as bundle:
+        with tarfile.open(temporary_archive, 'w:xz', preset=getattr(args, 'compression', 6)) as bundle:
             for name in ['package.json', 'Wine']:
                 bundle.add(stage / name, arcname=name)
         temporary_archive.replace(archive)
@@ -383,6 +383,7 @@ def main():
         package.add_argument('--' + name, type=Path, required=True)
     package.add_argument('--id', required=True)
     package.add_argument('--version', required=True)
+    package.add_argument('--compression', type=int, choices=range(0, 10), default=6)
     components = commands.add_parser('components')
     components.add_argument('--engine', type=Path, required=True)
     components.add_argument('--template', type=Path, required=True)

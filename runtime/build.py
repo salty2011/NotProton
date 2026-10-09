@@ -18,8 +18,11 @@ parser.add_argument('--components', type=Path, required=True, help='Verified dep
 parser.add_argument('--headers', type=Path, default=Path('/opt/homebrew'))
 parser.add_argument('--jobs', type=int, default=8)
 parser.add_argument('--stage-only', action='store_true', help='Stage an already built candidate')
+parser.add_argument('--media-trial', choices=['coreaudio', 'video'], help='Apply exactly one pinned media candidate in a fresh workspace; never promote it automatically')
 args = parser.parse_args()
 work = args.work.resolve()
+if args.media_trial and (work.exists() or args.stage_only):
+    parser.error('Media trials require a fresh workspace and a full build')
 components = args.components.resolve()
 headers = args.headers.resolve()
 if any(c.isspace() for c in str(work)) or args.jobs < 1:
@@ -71,6 +74,12 @@ if not (source / 'dlls/ntdll/notproton_steam.h').exists():
     run([sys.executable, str(repo / 'runtime/prepare-steam-hook.py'), str(source)])
 if 'WINEDLLPATH_PREPEND' not in (source / 'dlls/ntdll/unix/loader.c').read_text():
     run(['patch', '-d', str(source), '-p1', '-i', str(patch)])
+if args.media_trial:
+    trial = json.loads((repo / 'runtime/media-candidates.json').read_text())[args.media_trial]
+    inputs['media_trial'] = trial
+    media_patch = obtain('media_trial', trial['file'])
+    run(['patch', '--dry-run', '-d', str(source), '-p1', '-i', str(media_patch)])
+    run(['patch', '-d', str(source), '-p1', '-i', str(media_patch)])
 
 media_lib = deps / 'GStreamer.framework/Versions/1.0/lib'
 env = dict(os.environ, PATH=str(headers / 'opt/bison/bin') + ':' + str(headers / 'bin') + ':' + os.environ['PATH'],

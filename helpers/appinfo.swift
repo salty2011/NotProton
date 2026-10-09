@@ -9,6 +9,26 @@
 import Foundation
 
 let args = CommandLine.arguments
+if args.count >= 9, args[1] == "--game-profile" {
+    let environment = ProcessInfo.processInfo.environment
+    let target = args.dropFirst(8).first {
+        let name = $0.replacingOccurrences(of: "\\", with: "/").split(separator: "/").last.map(String.init)?.lowercased() ?? ""
+        return name.hasSuffix(".exe") && name != "steam.exe"
+    } ?? ""
+    let executable = target.replacingOccurrences(of: "\\", with: "/").split(separator: "/").last.map(String.init) ?? ""
+    let root = URL(filePath: args[6]), cwd = URL(filePath: args[7])
+    let architecture = GameProfiles.architecture(of: target, root: root, cwd: cwd)
+    do {
+        let value = try GameProfiles.launchValue(appID: args[2], runtime: args[3], renderer: args[4],
+            architecture: architecture == args[5] ? args[5] : "unknown", executable: executable, root: root, cwd: cwd,
+            environment: environment, report: { fputs($0 + "\n", stderr) })
+        print(value)
+        exit(0)
+    } catch {
+        fputs("Game profile preparation failed: \(error.localizedDescription)\n", stderr)
+        exit(1)
+    }
+}
 guard args.count == 3, let wantAppID = UInt32(args[2]) else {
     fputs("usage: appinfo <appinfo.vdf> <appid>\n", stderr)
     exit(2)

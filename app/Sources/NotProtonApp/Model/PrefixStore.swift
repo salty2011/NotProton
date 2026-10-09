@@ -111,9 +111,12 @@ enum PrefixStore {
                 let appID = entry.lastPathComponent
                 let pfx = entry.appending(path: "pfx")
                 var isDirectory: ObjCBool = false
-                guard FileManager.default.fileExists(atPath: pfx.path(percentEncoded: false), isDirectory: &isDirectory),
-                    isDirectory.boolValue
-                else { continue }
+                let exists = FileManager.default.fileExists(atPath: pfx.path(percentEncoded: false), isDirectory: &isDirectory)
+                    && isDirectory.boolValue
+                if !exists {
+                    let recovery = WinePrefix(appID: appID, name: nil, library: library, lastUsed: nil)
+                    guard !appID.isEmpty, appID.allSatisfy(\.isNumber), !backups(of: recovery).isEmpty else { continue }
+                }
 
                 found.append(
                     WinePrefix(

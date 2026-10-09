@@ -1,0 +1,14 @@
+{
+  "coreaudio": {
+    "url": "https://raw.githubusercontent.com/gauthierpiarrette/highball-engine/ac5cc83bb7d90b8fcca8e60a4a37fce2b9ee1d81/patches/0015-winecoreaudio-io-buffer-under-half-a-period.patch",
+    "sha256": "052b593e167ee1e732f2eeeafefc362b16612b8a247f293d903dafcd34bbe0c4",
+    "attribution": "Highball engine highball#127",
+    "file": "0015-winecoreaudio-io-buffer-under-half-a-period.patch"
+  },
+  "video": {
+    "url": "https://raw.githubusercontent.com/gauthierpiarrette/highball-engine/ac5cc83bb7d90b8fcca8e60a4a37fce2b9ee1d81/patches/0010-mfreadwrite-video-processor-sample-allocator.patch",
+    "sha256": "d16d712a2cdbec5194ba977b649054d26ce78ea7ec760a508625b009c40b17ad",
+    "attribution": "Highball engine; video patch derived from Proton 164af86d, CW-Bug-Id 20833",
+    "file": "0010-mfreadwrite-video-processor-sample-allocator.patch"
+  }
+}

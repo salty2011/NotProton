@@ -8,6 +8,8 @@ on:
       - 'runtime-tests/**'
       - 'ntdll-patch/**'
       - 'lsteamclient/**'
+      - 'app/Sources/NotProtonApp/Model/GameProfiles.swift'
+      - 'helpers/appinfo.swift'
       - '.github/workflows/free-runtime.yml'
 
 permissions:
@@ -34,6 +36,7 @@ jobs:
         run: |
           python3 -m unittest discover -s runtime/tests -v
           python3 runtime/generate-policy.py --check
+          python3 runtime/generate-profiles.py --check
       - uses: actions/cache@v4
         with:
           path: .scratch/runtime-inputs

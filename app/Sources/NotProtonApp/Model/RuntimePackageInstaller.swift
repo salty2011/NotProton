@@ -7,7 +7,7 @@ enum RuntimePackageInstaller {
 
     @discardableResult
     static func install(
-        archive: URL, package: RuntimePackage,
+        archive: URL, package: RuntimePackage, appVersion: String = AppVersion.bundled,
         runners: URL = SupportPaths.runners, bridge: URL = SupportPaths.bridge,
         toolList: URL = SupportPaths.toolList, compatTools: URL = SupportPaths.Steam.compatTools,
         prepare: (RunnerBuild, URL, URL, URL, URL) throws -> RunnerSetup.Outcome = { build, runners, bridge, list, tools in
@@ -15,6 +15,9 @@ enum RuntimePackageInstaller {
         }
     ) throws -> RunnerSetup.Outcome {
         try package.validate()
+        guard appVersion.compare(package.descriptor.minimumAppVersion, options: .numeric) != .orderedAscending else {
+            throw StepFailure(step: step, detail: "This runtime requires NotProton \(package.descriptor.minimumAppVersion). Update the app first.")
+        }
         let os = ProcessInfo.processInfo.operatingSystemVersion
         let currentOS = "\(os.majorVersion).\(os.minorVersion).\(os.patchVersion)"
         guard currentOS.compare(package.descriptor.minimumMacOSVersion, options: .numeric) != .orderedAscending else {

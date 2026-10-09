@@ -163,12 +163,33 @@ struct RuntimePackage: Codable, Sendable, Equatable {
     }
 
     func problems(in root: URL) -> [String] {
-        descriptor.criticalFiles.keys.sorted().compactMap { path in
+        var result: [String] = descriptor.criticalFiles.keys.sorted().compactMap { path in
             let file = root.appending(path: path)
             let checked = path == "lib/wine/x86_64-unix/wine" ? Clean.copy(of: file) : file
             return Digest.sha256IfPresent(checked) == descriptor.criticalFiles[path]
                 ? nil : "\(path) does not match runtime package \(id)"
         }
+        // Dependency aliases are part of the approved inventory too. Verify
+        // their targets before following them to the few required libraries.
+        for (path, entry) in descriptor.files where path.hasPrefix("Libraries/") && entry.kind == "link" {
+            if (try? FileManager.default.destinationOfSymbolicLink(atPath: root.appending(path: path).path)) != entry.target {
+                result.append("\(path) is missing or has a different dependency target")
+            }
+        }
+        guard result.isEmpty, let canonicalRoot = Self.canonicalPath(root) else { return result }
+        for path in ["Libraries/libgnutls.dylib", "Libraries/libfreetype.dylib", "Libraries/libMoltenVK.dylib",
+                     "Libraries/GStreamer.framework/Libraries/gstreamer-1.0/libgstlibav.dylib"] {
+            // Check dependency entrypoints represented by this inventory.
+            guard descriptor.files[path] != nil || descriptor.files.keys.contains(where: { $0.hasPrefix("Libraries/GStreamer.framework/") && path.contains("GStreamer") }) else { continue }
+            let file = root.appending(path: path)
+            guard let canonical = Self.canonicalPath(file), canonical.hasPrefix(canonicalRoot + "/"),
+                  let expected = descriptor.files[String(canonical.dropFirst(canonicalRoot.count + 1))]?.sha256,
+                  Digest.sha256IfPresent(file) == expected else {
+                result.append("\(path) is missing or does not match runtime package \(id)")
+                continue
+            }
+        }
+        return result.sorted()
     }
 }
 

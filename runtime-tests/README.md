@@ -39,8 +39,9 @@ On 9 October 2026, both Sikarugir 11.0 revision 1 runs passed `DOS_PATH` and fai
 both `GLOBALROOT` reads. Fallout 76 attempted this same namespace when opening its
 own executable before its startup exception. The source candidate passes both
 architectures. Removing only its `GLOBALROOT` handling reproduces the same
-Fallout exception; restoring the handling removes that exception. Visible menu
-and gameplay qualification still remain pending.
+Fallout exception; restoring the handling removes that exception. The user subsequently confirmed Fallout 76 login and gameplay after rebuilding
+its prefix on the source engine. Longer sessions and a new package remain separate
+qualification milestones.
 
 CodeWeavers' published LGPL Wine source implements `GLOBALROOT` handling in
 `dlls/ntdll/unix/file.c`. Valve's Wine history also includes this change. Reuse
@@ -114,6 +115,9 @@ builds the Windows Media Foundation/D3D11 probe and test-only native audio tap,
 generates its own marker clip, and records three cold/warm runs. Requires the
 MinGW C++ compiler, clang, ffmpeg and Rosetta. `--clip /path/to/local/video.mp4`
 selects private media; `--renderer dxvk` selects a separate renderer trial.
-Captured zero-filled buffers, callback errors, video-transfer timing and marker
-A/V drift remain separate metrics. The probe does not measure actual swapchain
-presentation or establish that a complete game's videos and gameplay work.
+Captured zero-filled buffers, callback errors, successful swapchain presentations
+and marker A/V drift remain separate metrics. The visible probe transfers frames
+into a swapchain and calls Present; --transfer-only reproduces the earlier
+offscreen baseline. Present success measures submitted frames, not physical display
+scanout or a complete game's videos and gameplay. Closing the probe window fails
+the run. Any failed synthetic gate makes qualification exit unsuccessfully.

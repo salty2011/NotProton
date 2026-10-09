@@ -25,7 +25,7 @@ def prepare(output):
     output.mkdir(parents=True, exist_ok=True)
     run(['x86_64-w64-mingw32-g++', '-Wall', '-Wextra', '-Werror', '-municode', '-static',
          SOURCE / 'media-playback.cpp', '-o', output / 'media-playback.exe',
-         '-lmfplat', '-lmfuuid', '-luuid', '-lole32', '-loleaut32', '-ld3d11', '-ldxgi'])
+         '-lmfplat', '-lmfreadwrite', '-lmfuuid', '-luuid', '-lole32', '-loleaut32', '-ld3d11', '-ldxgi'])
     run(['clang', '-arch', 'x86_64', '-Wall', '-Wextra', '-Werror', '-dynamiclib',
          SOURCE / 'audio-capture.c', '-framework', 'AudioToolbox', '-o', output / 'audio-capture.dylib'])
     run(['codesign', '-f', '-s', '-', output / 'audio-capture.dylib'])
@@ -44,6 +44,13 @@ def analyze(directory, marker=False):
     completion = None
     frequency = None
     for line in lines:
+        if line.startswith('MEDIA_ALLOCATION_RESULT '):
+            values = {key: int(value) for key, value in re.findall(r'(\w+)=(\d+)', line)}
+            result = dict(values, path='source-reader', passesAllocationGate=bool(values['ended']
+                and values['frames'] > 0 and values['shared'] == values['frames'] and values['failures'] == 0
+                and (not marker or values['frames'] >= math.ceil(360 * .99))))
+            (directory / 'metrics.json').write_text(json.dumps(result, indent=2) + '\n')
+            return result
         if line.startswith('MEDIA_'):
             values = dict(re.findall(r'(\w+)=([-\d.]+)', line))
             if line.startswith('MEDIA_FRAME'):
@@ -52,7 +59,9 @@ def analyze(directory, marker=False):
                 completion = values
             elif line.startswith('MEDIA_TIMING'):
                 frequency = float(values['qpc_frequency'])
+    surface = next((line.split()[1] for line in lines if line.startswith('MEDIA_SURFACE ')), None)
     result = {'completed': bool(completion and completion['ended'] == '1' and completion['error'] == '0'),
+              'surface': surface, 'framesPresented': int(completion['frames']) if completion and surface == 'swapchain' else None,
               'framesTransferred': len(frames), 'transferFailures': int(completion['failures']) if completion else None,
               'maxFrameGapMS': max((b['wall_ms'] - a['wall_ms'] for a, b in zip(frames, frames[1:])), default=None),
               'audio': [], 'marker': marker}
@@ -114,6 +123,10 @@ def analyze(directory, marker=False):
             and len(audio) == 1 and not audio[0]['internalSilentRegions']
             and not audio[0]['clockDiscontinuities'] and not audio[0]['callbackErrors']
             and audio[0].get('avDriftMS') is not None and abs(audio[0]['avDriftMS']) <= 100)
+        if surface == 'audio-only':
+            result['passesSyntheticGate'] = bool(result['completed'] and len(audio) == 1
+                and not audio[0]['internalSilentRegions'] and not audio[0]['clockDiscontinuities']
+                and not audio[0]['callbackErrors'] and abs(audio[0]['seconds'] - 12) <= .25)
     (directory / 'metrics.json').write_text(json.dumps(result, indent=2) + '\n')
     return result
 
@@ -125,12 +138,22 @@ def replay(args):
     prepare(output / 'fixtures')
     runtime = args.runtime.resolve()
     clip = args.clip.resolve() if args.clip else output / 'fixtures/marker.mp4'
+    original_clip = clip
+    if args.audio_only:
+        clip = output / 'fixtures/audio.m4a'
+        # Preserve the encoded AAC stream; remove video without re-encoding audio.
+        run(['ffmpeg', '-hide_banner', '-loglevel', 'error', '-i', original_clip,
+             '-vn', '-c:a', 'copy', clip])
     metadata = {'runtimeLoaderSHA256': hashlib.sha256((runtime / 'lib/wine/x86_64-unix/wine').read_bytes()).hexdigest(),
                 'renderer': args.renderer, 'clipSHA256': hashlib.sha256(clip.read_bytes()).hexdigest(),
                 'synthetic': not bool(args.clip), 'os': subprocess.check_output(['sw_vers'], text=True),
+                'path': 'source-reader' if args.source_reader else 'media-engine',
+                'originalClipSHA256': hashlib.sha256(original_clip.read_bytes()).hexdigest(),
+                'surface': 'audio-only' if args.audio_only else 'transfer-only' if args.transfer_only else 'swapchain',
                 'hardware': subprocess.check_output(['sysctl', '-n', 'machdep.cpu.brand_string'], text=True)}
     (output / 'run.json').write_text(json.dumps(metadata, indent=2) + '\n')
     warm = output / 'warm-prefix'
+    reports = []
     for mode in ['cold', 'warm']:
         for number in range(1, args.runs + 1):
             directory = output / f'{mode}-{number}'
@@ -146,13 +169,24 @@ def replay(args):
                        NP_AUDIO_CAPTURE_DIR=str(directory), DYLD_INSERT_LIBRARIES=str(output / 'fixtures/audio-capture.dylib'))
             try:
                 with (directory / 'probe.log').open('wb') as log:
-                    outcome = subprocess.run([str(runtime / 'bin/wine'), str(output / 'fixtures/media-playback.exe'),
-                        'Z:' + str(clip).replace('/', '\\')], env=env, stdout=log, stderr=subprocess.STDOUT, timeout=180)
+                    command = [str(runtime / 'bin/wine'), str(output / 'fixtures/media-playback.exe'), 'Z:' + str(clip).replace('/', '\\')]
+                    if args.transfer_only:
+                        command.append('--transfer-only')
+                    elif args.audio_only:
+                        command.append('--audio-only')
+                    elif args.source_reader:
+                        command.append('--source-reader')
+                    outcome = subprocess.run(command, env=env, stdout=log, stderr=subprocess.STDOUT, timeout=180)
                 metrics = analyze(directory, marker=not bool(args.clip))
+                reports.append({'mode': mode, 'run': number, 'exit': outcome.returncode, 'metrics': metrics})
                 print(mode, number, 'exit', outcome.returncode, json.dumps(metrics), flush=True)
             finally:
                 # Only this disposable prefix's server; never the user's game server.
                 subprocess.run([env['WINESERVER'], '-k'], env=env, timeout=10, check=True)
+    (output / 'qualification.json').write_text(json.dumps(reports, indent=2) + '\n')
+    gate = 'passesAllocationGate' if args.source_reader else 'passesSyntheticGate'
+    if any(report['exit'] or (not args.clip and not report['metrics'].get(gate)) for report in reports):
+        raise RuntimeError('Media qualification failed; retain the individual measurements')
 
 
 def main():
@@ -164,6 +198,10 @@ def main():
     test.add_argument('--clip', type=Path)
     test.add_argument('--renderer', choices=['dxmt', 'dxvk'], default='dxmt')
     test.add_argument('--runs', type=int, default=3, choices=range(1, 4))
+    surface = test.add_mutually_exclusive_group()
+    surface.add_argument('--transfer-only', action='store_true', help='Replay the earlier offscreen-transfer baseline without a swapchain')
+    surface.add_argument('--audio-only', action='store_true', help='Replay the same encoded audio without video decoding or presentation')
+    surface.add_argument('--source-reader', action='store_true', help='Check Source Reader DXGI texture sharing separately from playback timing')
     inspect = commands.add_parser('analyze')
     inspect.add_argument('directory', type=Path)
     inspect.add_argument('--marker', action='store_true')

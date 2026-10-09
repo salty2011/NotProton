@@ -283,19 +283,33 @@ final class SystemStatus {
         }
     }
 
-    func installRuntimePackage(_ package: RuntimePackage) async {
+    func installRuntimePackage(_ package: RuntimePackage, chooseLocal: Bool = true) async {
         guard canInstall, snapshot?.payload.steamComponentsComplete == true else { return }
-        let panel = NSOpenPanel()
-        panel.canChooseFiles = true
-        panel.canChooseDirectories = false
-        panel.allowsMultipleSelection = false
-        panel.prompt = "Install Package"
-        panel.message = "Select \(package.file). This app verifies the archive against its bundled catalog."
-        guard panel.runModal() == .OK, let archive = panel.url else { return }
+        var local: URL?
+        if chooseLocal {
+            let panel = NSOpenPanel()
+            panel.canChooseFiles = true
+            panel.canChooseDirectories = false
+            panel.allowsMultipleSelection = false
+            panel.prompt = "Install Package"
+            panel.message = "Select \(package.file). This app verifies the archive against its bundled catalog."
+            guard panel.runModal() == .OK, let archive = panel.url else { return }
+            local = archive
+        }
+        let selected = local
         await perform(from: RuntimePackageInstaller.step) { progress in
             let lock = try DeploymentContent.acquireInstallationLock(for: SupportPaths.Steam.app)
             defer { close(lock) }
             try await requireUnblockedContent()
+            let archive: URL
+            if let selected {
+                progress("Verifying and caching the approved package for offline reuse")
+                archive = try await Task.detached(priority: .userInitiated) {
+                    try RuntimePackageDownload.remember(selected, package: package)
+                }.value
+            } else {
+                archive = try await RuntimePackageDownload.obtain(package, report: progress)
+            }
             progress("Verifying the package and preparing its matching Steam bridge")
             _ = try await Task.detached(priority: .userInitiated) {
                 try RuntimePackageInstaller.install(archive: archive, package: package)

@@ -35,6 +35,7 @@ final class PrefixesModel {
 
     var isBusy: Bool { !busy.isEmpty }
     var outcome: String?
+    private(set) var dependencyActivity: String?
     private(set) var report: FailureReport?
 
     var failure: String? { report?.message }
@@ -189,6 +190,53 @@ final class PrefixesModel {
                 + "prefix. Check that your saves are present in the games, then delete the "
                 + "backups to save space."
         }
+    }
+
+    func migrate(_ prefix: WinePrefix, to tool: InstalledTool) async {
+        await eachInTurn([prefix], { try RuntimeMigration.migrate($0, to: tool) }) { results in
+            guard let result = results.first else { return nil }
+            return "Changed \(prefix.title) to \(tool.display). Original prefix and selection retained at \(result.made.path). Start Steam to use the new selection."
+        }
+    }
+
+    func restore(_ backup: PrefixBackup, includingSelection: Bool) async {
+        await eachInTurn([backup.prefix], {
+            try RuntimeMigration.restore(backup: backup.url, for: $0, restoreMapping: includingSelection)
+        }) { results in
+            guard !results.isEmpty else { return nil }
+            return includingSelection ? "Restored the prefix and runtime selection for \(backup.title). The replaced prefix is retained as another backup."
+                : "Restored the prefix for \(backup.title). Select its original runtime in Steam before launching. The replaced prefix is retained as another backup."
+        }
+    }
+
+    func setProfiles(for prefix: WinePrefix, disabled: Bool, reset: Bool = false) async {
+        await eachInTurn([prefix], { prefix in
+            guard !PrefixStore.isInUse(prefix) else {
+                throw StepFailure(step: "Change game profile", detail: "Quit this game before changing its profile.")
+            }
+            if reset { try GameProfiles.reset(in: prefix.root) }
+            else { try GameProfiles.setDisabled(disabled, in: prefix.root) }
+            return true
+        }) { results in
+            guard !results.isEmpty else { return nil }
+            return "Local profile controls \(disabled ? "disabled" : "enabled") for \(prefix.title). Explicit Steam launch options and your renderer configuration are retained."
+        }
+    }
+
+    func prepareDependency(_ recipe: DependencyRecipe, for prefix: WinePrefix) async {
+        guard !isBusy else { return }
+        forgetOutcome(); busy.insert(prefix.id)
+        dependencyActivity = "Checking approved dependencies"
+        do {
+            let result = try await DependencyRecipes.prepare(recipe.id, for: prefix) { label in
+                Task { @MainActor in if self.busy.contains(prefix.id) { self.dependencyActivity = label } }
+            }
+            outcome = result.alreadySatisfied ? "\(recipe.id) is already satisfied. No prefix changes were needed."
+                : "Verified \(recipe.id) v\(recipe.revision). Original prefix retained at \(result.backup?.path ?? "the backup folder")."
+        } catch { report = FailureReport([error]) }
+        busy.remove(prefix.id)
+        dependencyActivity = nil
+        await load()
     }
 
     func reveal(_ backup: PrefixBackup) {

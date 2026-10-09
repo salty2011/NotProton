@@ -500,6 +500,7 @@ struct RunnerRemovalTests {
             bridge: runners.appending(path: "bridge"), toolList: runners.appending(path: "tools"),
             compatTools: runners.appending(path: "compatibilitytools.d"),
             libraries: libraries,
+            selectionFile: nil,
             running: { _ in running }
         )
     }

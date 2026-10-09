@@ -1,6 +1,9 @@
 import SwiftUI
 
 struct BackupsView: View {
+    @State private var restoring: PrefixBackup?
+    @State private var restoreSelection = true
+    @State private var showingRestore = false
 
     @Environment(PrefixesModel.self) private var model
     @State private var selection = Set<PrefixBackup.ID>()
@@ -64,6 +67,14 @@ struct BackupsView: View {
                 .keyboardShortcut(.defaultAction)
         } message: {
             Text(PrefixPrompt.deleteBackupsMessage(clearing))
+        }
+        .confirmationDialog("Restore this backup?", isPresented: $showingRestore, titleVisibility: .visible) {
+            Button(restoreSelection ? "Restore Prefix and Runtime Selection" : "Restore Prefix Only") {
+                if let restoring { Task { await model.restore(restoring, includingSelection: restoreSelection) } }
+            }
+            Button("Cancel", role: .cancel) { restoring = nil }
+        } message: {
+            Text("Quit the game and Steam first. The current prefix will be retained as another backup. Older backups have no selection record; use Restore Prefix Only and choose their original runtime in Steam.")
         }
     }
 
@@ -183,6 +194,12 @@ struct BackupsView: View {
         Group {
             if targets.count == 1, let backup = targets.first {
                 Button("Reveal in Finder") { model.reveal(backup) }
+                Button("Restore Prefix and Runtime Selection\u{2026}") {
+                    restoring = backup; restoreSelection = true; showingRestore = true
+                }
+                Button("Restore Prefix Only\u{2026}") {
+                    restoring = backup; restoreSelection = false; showingRestore = true
+                }
                 Divider()
             }
             if !targets.isEmpty {

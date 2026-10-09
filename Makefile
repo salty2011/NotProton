@@ -435,9 +435,10 @@ APPINFO := $(OUT_DIR)/appinfo
 
 appinfo: $(APPINFO)
 
-$(APPINFO): helpers/appinfo.swift
-	@mkdir -p $(OUT_DIR)
-	swiftc -O -target $(ARCH)-apple-macos$(MIN_VER) -o $@ $<
+$(APPINFO): helpers/appinfo.swift app/Sources/NotProtonApp/Model/GameProfiles.swift app/Sources/NotProtonApp/Model/GameProfileCatalog.swift
+	@mkdir -p $(OUT_DIR)/appinfo-main
+	cp helpers/appinfo.swift $(OUT_DIR)/appinfo-main/main.swift
+	swiftc -O -target $(ARCH)-apple-macos$(MIN_VER) -o $@ $(OUT_DIR)/appinfo-main/main.swift app/Sources/NotProtonApp/Model/GameProfiles.swift app/Sources/NotProtonApp/Model/GameProfileCatalog.swift
 	@echo "==> Built $@"
 
 helpers-install: $(ICONMAKER) $(APPINFO)

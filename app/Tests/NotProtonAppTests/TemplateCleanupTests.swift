@@ -28,7 +28,7 @@ struct TemplateCleanupTests {
             try RunnerInstaller.removeClone(
                 forBuild: build, runners: runners, bridge: root.appending(path: "bridge"),
                 toolList: root.appending(path: "tools"), compatTools: root.appending(path: "compat-tools"),
-                libraries: [library], running: { _ in false })
+                libraries: [library], selectionFile: nil, running: { _ in false })
         }
     }
 

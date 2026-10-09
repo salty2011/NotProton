@@ -380,14 +380,18 @@ struct StatusView: View {
                         && !snapshot.damagedRunners.contains(package.id)
                     StatusRow(
                         title: "Free Wine \(package.descriptor.displayVersion)",
-                        value: ready ? "Runtime package ready." : present ? "Remove the damaged copy, then reinstall its package." : "Install the approved local runtime package.",
+                        value: ready ? "Runtime package ready." : present ? "Remove the damaged copy, then reinstall its package." : package.descriptor.distributionReady ? "Download the approved free runtime." : "Local review candidate; public source and license review is pending.",
                         tone: ready ? .ok : .neutral,
                         detail: "Requires macOS \(package.descriptor.minimumMacOSVersion). Select this version per game; existing runtimes remain available.",
-                        action: present ? nil : StatusAction(label: "Install Package\u{2026}",
+                        action: present ? nil : StatusAction(label: package.descriptor.distributionReady ? "Set Up" : "Install Package\u{2026}",
                             isEnabled: status.canInstall && snapshot.payload.steamComponentsComplete) {
-                                Task { await status.installRuntimePackage(package) }
+                                Task { await status.installRuntimePackage(package, chooseLocal: !package.descriptor.distributionReady) }
                             },
-                        menu: present ? [removeCopyAction(package.id, label: "Remove Copy\u{2026}")] : []
+                        menu: present ? [removeCopyAction(package.id, label: "Remove Copy\u{2026}")] : [
+                            StatusAction(label: "Install from Cache or Download", isEnabled: status.canInstall && snapshot.payload.steamComponentsComplete) {
+                                Task { await status.installRuntimePackage(package, chooseLocal: false) }
+                            }
+                        ]
                     )
                 }
                 crossOverSection(snapshot)

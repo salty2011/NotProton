@@ -52,6 +52,7 @@ enum RunnerInstaller {
         toolList: URL = SupportPaths.toolList,
         compatTools: URL = SupportPaths.Steam.compatTools,
         libraries: [SteamLibrary] = PrefixStore.libraries(),
+        selectionFile: URL? = SteamToolSelection.file,
         running: (URL) -> Bool = { RunnerInstaller.isRunning(from: $0) }
     ) throws -> Bool {
         let target = SupportPaths.runnerRoot(forBuild: build, runners: runners)
@@ -65,6 +66,15 @@ enum RunnerInstaller {
                 step: removeStep,
                 detail: "A game or Wine tool is still running on build \(build). Quit it first."
             )
+        }
+
+        if let selectionFile, FileManager.default.fileExists(atPath: selectionFile.path) {
+            let names = Set(CompatToolList.installed(runners: runners, file: toolList).filter { $0.build == build }.map { $0.tool.name })
+                .union(SupportedRunners.build(id: build)?.tools.map(\.name) ?? [])
+            let mapped = try SteamToolSelection.mappedGames(to: names, in: String(contentsOf: selectionFile, encoding: .utf8))
+            guard mapped.isEmpty else {
+                throw StepFailure(step: removeStep, detail: "This runtime is selected for Steam app IDs \(mapped.joined(separator: ", ")). Select another runtime for those games (and the default if app ID 0 is listed) before removing this copy. Retain it if prefix backups still need it for rollback.")
+            }
         }
 
         let fm = FileManager.default

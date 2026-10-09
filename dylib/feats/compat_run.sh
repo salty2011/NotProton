@@ -1519,25 +1519,22 @@ fi
 cat > "$loader_macos/launcher" <<LAUNCHER
 #!/bin/sh
 export WINELOADER="$WINELOADER"
+wine_log="$loader_root/notproton-wine.log"
+exec > "\$wine_log" 2>&1
 # The protected system shell strips inherited DYLD_* variables. Recreate the
 # free runner's library path here, after crossing that boundary.
 if [ -f "\$CX_ROOT/notproton-provider" ]; then
   export DYLD_FALLBACK_LIBRARY_PATH="\$CX_ROOT/Libraries:\$CX_ROOT/Libraries/GStreamer.framework/Libraries:/usr/lib"
   export GST_PLUGIN_PATH="\$CX_ROOT/Libraries/GStreamer.framework/Libraries/gstreamer-1.0"
-  # AoE DE rejects Apple's PCI IDs despite a working D3D11 device. Use the
-  # renderer's adapter override; explicit launch options win.
-  if [ "\$SteamAppId" = 1017900 ]; then
-    if [ -n "\$WINEDLLPATH_DXMT" ]; then
-      export DXMT_CONFIG="[AoEDE_s.exe];dxgi.customVendorId=1002;dxgi.customDeviceId=7340;\${DXMT_CONFIG:-}"
-    elif [ -n "\$WINEDLLPATH_DXVK" ] && [ -z "\$DXVK_CONFIG_FILE" ]; then
-      # DXVK 1.10.3 reads a file rather than DXVK_CONFIG environment entries.
-      printf '%s\n' 'dxgi.customVendorId = 1002' 'dxgi.customDeviceId = 7340' > "$loader_root/notproton-dxvk.conf"
-      export DXVK_CONFIG_FILE="Z:$loader_root/notproton-dxvk.conf"
-    fi
+  # Reviewed defaults are data; the helper never evaluates profile text.
+  if [ -x "$appinfo_tool" ]; then
+    profile_value=\$("$appinfo_tool" --game-profile "$app_id" "$np_build" "\$NP_EFFECTIVE_BACKEND" x86_64 "$STEAM_COMPAT_DATA_PATH" "\${NOTPROTON_GAME_CWD:-\$PWD}" "\$@") || exit 71
+    case "\$NP_EFFECTIVE_BACKEND" in
+      dxmt) export DXMT_CONFIG="\$profile_value" ;;
+      dxvk) export DXVK_CONFIG_FILE="\$profile_value" ;;
+    esac
   fi
 fi
-wine_log="$loader_root/notproton-wine.log"
-exec > "\$wine_log" 2>&1
 shim="$HOME/Library/Application Support/notproton/overlay-shim.dylib"
 if [ -n "\$STEAM_DYLD_INSERT_LIBRARIES" ]; then
   if [ -f "\$shim" ]; then
@@ -1628,6 +1625,8 @@ for name in $(env | sed -nE 's/^(CX_APPLEGPTK_LIBD3DSHARED_PATH|Steam[A-Za-z0-9]
 done
 if [ "$free_runner" = 1 ]; then
   set -- --env SikarugirAppWine11=1 \
+    --env NP_EFFECTIVE_BACKEND="$NP_EFFECTIVE_BACKEND" \
+    --env NOTPROTON_DISABLE_PROFILES="${NOTPROTON_DISABLE_PROFILES:-}" \
     --env DYLD_FALLBACK_LIBRARY_PATH="$DYLD_FALLBACK_LIBRARY_PATH" \
     --env GST_PLUGIN_PATH="$GST_PLUGIN_PATH" \
     --env VK_DRIVER_FILES="$VK_DRIVER_FILES" \

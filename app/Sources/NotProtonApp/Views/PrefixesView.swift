@@ -7,6 +7,8 @@ struct PrefixesView: View {
     @Environment(PrefixesModel.self) private var model
     @Environment(\.colorSchemeContrast) private var contrast
     @State private var sortOrder = [KeyPathComparator(\PrefixRow.lastUsed, order: .reverse)]
+    @State private var migration: (WinePrefix, InstalledTool)?
+    @State private var showingMigration = false
 
     var body: some View {
         Group {
@@ -27,6 +29,16 @@ struct PrefixesView: View {
             }
         }
         .navigationTitle("Prefixes")
+        .confirmationDialog("Change runtime and rebuild this prefix?", isPresented: $showingMigration, titleVisibility: .visible) {
+            if let (prefix, tool) = migration {
+                Button("Back Up, Rebuild and Select \(tool.display)") {
+                    Task { await model.migrate(prefix, to: tool) }
+                }
+            }
+            Button("Cancel", role: .cancel) { migration = nil }
+        } message: {
+            Text("Quit the game and Steam first. This changes only this game's runtime selection and keeps its previous prefix and selection for rollback in Prefix Backups.")
+        }
         .safeAreaInset(edge: .bottom) {
             if let failed = model.report {
                 report(
@@ -47,6 +59,8 @@ struct PrefixesView: View {
                         tone: .ok
                     )
                 )
+            } else if let activity = model.dependencyActivity {
+                ProgressView(activity).padding(10)
             }
         }
         .toolbar {
@@ -319,6 +333,36 @@ struct PrefixesView: View {
         Group {
             if let prefix = single(ids) {
                 toolButtons(for: prefix)
+                Menu("Change Runtime with Backup\u{2026}") {
+                    ForEach(model.tools) { tool in
+                        Button(tool.display) {
+                            migration = (prefix, tool)
+                            showingMigration = true
+                        }
+                    }
+                }
+                ForEach(GameProfiles.all.filter { $0.appID == prefix.appID }, id: \.id) { profile in
+                    Menu("Game Profile: \(profile.id) v\(profile.revision)") {
+                        Text(profile.rationale)
+                        Button(GameProfiles.disabled(in: prefix.root) ? "Enable Local Profile" : "Disable Local Profile") {
+                            Task { await model.setProfiles(for: prefix, disabled: !GameProfiles.disabled(in: prefix.root)) }
+                        }
+                        Button("Reset Local Profile Controls") {
+                            Task { await model.setProfiles(for: prefix, disabled: false, reset: true) }
+                        }
+                        Text("Steam Compatibility settings also show this profile when the selected runtime and renderer match.")
+                    }
+                }
+                Menu("Dependency Preparation") {
+                    Text("Steam's dependency install scripts run first.")
+                    let recipes = DependencyRecipes.all.filter { $0.appIDs.contains(prefix.appID) }
+                    if recipes.isEmpty { Text("No additional dependency recipe is qualified for this game.") }
+                    ForEach(recipes, id: \.id) { recipe in
+                        Button("Prepare \(recipe.id) v\(recipe.revision): \(recipe.reason)") {
+                            Task { await model.prepareDependency(recipe, for: prefix) }
+                        }
+                    }
+                }
                 Divider()
                 Button("Reveal in Finder") { model.reveal(prefix) }
             }
