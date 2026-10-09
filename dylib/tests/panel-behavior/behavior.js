@@ -119,6 +119,11 @@ for (const form of Object.keys(FORMS)) {
       backend.props.onChange({ data: '' });
       t.ok(!changes.at(-1).opts.includes('D3DM_ENABLE_METALFX'),
            'selecting free Automatic clears an incompatible D3DMetal option');
+      const enabled = walk(render({ details: details('CX_GRAPHICS_BACKEND=dxmt DXMT_ENABLE_NVEXT=1 %command%',
+                                                     { strCompatToolName: tool }) }));
+      enabled.find(x => x.type === 'Dropdown').props.onChange({ data: '' });
+      t.ok(changes.at(-1).opts.includes('DXMT_ENABLE_NVEXT=1'),
+           'switching free DXMT to Automatic preserves its compatible DLSS option');
     }
   }
 

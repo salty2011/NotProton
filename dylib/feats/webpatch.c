@@ -231,7 +231,7 @@ static int out_expand(np_out_t *o, const char *replace, const np_cap_t *caps) {
     ".concat(!fr&&(\"\"===v.data||\"d3dmetal\"===v.data)?[]:[[\"D3DM_ENABLE_METALFX\",\"\"]])" \
     ".concat(\"\"===v.data||\"dxmt\"===v.data?[]:" \
     "[[\"DXMT_METALFX_SPATIAL_SWAPCHAIN\",\"\"],[\"DXMT_CONFIG\",fx(\"\")]])" \
-    ".concat(\"dxmt\"===v.data?[]:[[\"DXMT_ENABLE_NVEXT\",\"\"]]))})," \
+    ".concat(\"dxmt\"===v.data||(fr&&\"\"===v.data)?[]:[[\"DXMT_ENABLE_NVEXT\",\"\"]]))})," \
     "T([\"MTL_HUD_ENABLED\"],\"Metal HUD\",\"1\")," \
     "dm&&T([\"D3DM_ENABLE_METALFX\"],\"DLSS\",\"1\")," \
     "(\"dxmt\"===b||(fr&&\"\"===b))&&T([\"DXMT_ENABLE_NVEXT\"],\"DLSS\",\"1\")," \
