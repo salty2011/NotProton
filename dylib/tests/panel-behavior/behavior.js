@@ -96,6 +96,32 @@ for (const form of Object.keys(FORMS)) {
   t.ok(css.length === 1 && css[0].props.children.includes('.MSCXPanel .MSCXRow{'),
        'the panel carries one stylesheet defining the row rule');
 
+  for (const [tool, config, free] of [
+    ['notproton-sikarugir', {}, true],
+    ['notproton', { legacyFree: true }, true],
+    ['', { defaultTool: 'notproton-sikarugir' }, true],
+    ['', { defaultTool: 'notproton', legacyFree: true }, true],
+    ['notproton', {}, false],
+    ['notproton-26.3', { legacyFree: true }, false],
+  ]) {
+    const { render, written: changes } = panel(emit, form, config);
+    const ns = walk(render({ details: details('D3DM_ENABLE_METALFX=1 %command%',
+                                             { strCompatToolName: tool }) }));
+    const backend = ns.find(x => x.type === 'Dropdown');
+    t.ok(backend.props.rgOptions.some(x => x.data === 'd3dmetal') === !free,
+         `${tool || 'inherited default'} offers D3DMetal only for a paid runner`);
+    if (free) {
+      t.ok(backend.props.rgOptions[0].label === 'Automatic (DXMT / D9VK)',
+           'free Automatic names its actual graphics choices');
+      ns.find(x => x.props.label === 'DLSS').props.onChange(true);
+      t.ok(changes.at(-1).opts.includes('DXMT_ENABLE_NVEXT=1'),
+           'free Automatic DLSS writes the DXMT option');
+      backend.props.onChange({ data: '' });
+      t.ok(!changes.at(-1).opts.includes('D3DM_ENABLE_METALFX'),
+           'selecting free Automatic clears an incompatible D3DMetal option');
+    }
+  }
+
   failed += t.failed;
 }
 console.log(failed ? `\n${failed} failure(s)` : '\nboth shapes pass');

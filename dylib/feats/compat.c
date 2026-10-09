@@ -429,6 +429,14 @@ static void load_tool_list_once(void) {
     pthread_once(&once, load_tool_list);
 }
 
+const char *np_compat_tool_build(const char *name) {
+    load_tool_list_once();
+    if (!name) return NULL;
+    for (int i = 0; i < g_tool_count; i++)
+        if (strcmp(g_tools[i].name, name) == 0) return g_tools[i].build;
+    return NULL;
+}
+
 uint32_t np_compat_manager_tools_max(void) {
     load_tool_list_once();
     return COMPAT_MANAGER_TOOLS_HEADROOM + (uint32_t)g_tool_count;

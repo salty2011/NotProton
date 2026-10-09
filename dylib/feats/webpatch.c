@@ -17,8 +17,12 @@
 
 // Stands for the name set by np_webpatch_set_fallback_tool.
 #define NP_FALLBACK_TOOL "\021"
+#define NP_LEGACY_FREE "\022"
 
 static _Thread_local char g_fallback_tool[128];
+static _Thread_local int g_legacy_free;
+
+void np_webpatch_set_legacy_free(int enabled) { g_legacy_free = !!enabled; }
 
 typedef struct {
     const char *find;
@@ -54,6 +58,13 @@ static size_t match_at(const char *src, size_t len, size_t pos,
 
     size_t s = pos;
     for (const char *f = find; *f; f++) {
+        if (*f == NP_LEGACY_FREE[0]) {
+            const char *value = g_legacy_free ? "true" : "false";
+            size_t n = strlen(value);
+            if (s + n > len || memcmp(src + s, value, n) != 0) return 0;
+            s += n;
+            continue;
+        }
         if (*f == NP_FALLBACK_TOOL[0]) {
             size_t n = strlen(g_fallback_tool);
             if (s + n > len || memcmp(src + s, g_fallback_tool, n) != 0) return 0;
@@ -115,6 +126,11 @@ static int out_put(np_out_t *o, const char *p, size_t n) {
 
 static int out_expand(np_out_t *o, const char *replace, const np_cap_t *caps) {
     for (const char *r = replace; *r; r++) {
+        if (*r == NP_LEGACY_FREE[0]) {
+            const char *value = g_legacy_free ? "true" : "false";
+            if (!out_put(o, value, strlen(value))) return 0;
+            continue;
+        }
         if (*r == NP_FALLBACK_TOOL[0]) {
             if (!out_put(o, g_fallback_tool, strlen(g_fallback_tool))) return 0;
             continue;
@@ -170,6 +186,8 @@ static int out_expand(np_out_t *o, const char *replace, const np_cap_t *caps) {
 #define NP_CX_OPTIONS_BODY(ARG, RT, BARREL) \
     ARG "=>{" \
     "const t=" ARG ".details,o=t.strLaunchOptions||\"\"," \
+    "tn=t.strCompatToolName||\"" NP_FALLBACK_TOOL "\"," \
+    "fr=tn===\"notproton-sikarugir\"||(tn===\"notproton\"&&" NP_LEGACY_FREE ")," \
     NP_CX_LAUNCH_PARSE \
     "g=k=>{const p=E.e.filter(w=>o.startsWith(k+\"=\",w.start)).pop();" \
     "return p?(p.value===null?o.slice(p.start+k.length+1,p.end):p.value.slice(k.length+1)):\"\"}," \
@@ -184,7 +202,7 @@ static int out_expand(np_out_t *o, const char *replace, const np_cap_t *caps) {
     "checked:g(ks[0])===on," \
     "onChange:v=>s(ks.map(k=>[k,v?on:(off||\"\")]))},ks[0])," \
     "b=g(\"CX_GRAPHICS_BACKEND\")," \
-    "dm=\"\"===b||\"d3dmetal\"===b," \
+    "dm=!fr&&(\"\"===b||\"d3dmetal\"===b)," \
     "dx=\"\"===b||\"dxmt\"===b," \
     "sw=\"1\"===g(\"DXMT_METALFX_SPATIAL_SWAPCHAIN\")," \
     "F=\"d3d11.metalSpatialUpscaleFactor=\"," \
@@ -198,11 +216,11 @@ static int out_expand(np_out_t *o, const char *replace, const np_cap_t *caps) {
     "{data:\"1.72\",label:\"1.72x\"}," \
     "{data:\"2.0\",label:\"2x\"}," \
     "{data:\"3.0\",label:\"3x\"}]," \
-    "B=[{data:\"\",label:\"Automatic\"}," \
+    "B=[{data:\"\",label:fr?\"Automatic (DXMT / D9VK)\":\"Automatic\"}," \
     "{data:\"d3dmetal\",label:\"D3DMetal\"}," \
     "{data:\"dxmt\",label:\"DXMT\"}," \
     "{data:\"dxvk\",label:\"DXVK\"}," \
-    "{data:\"wined3d\",label:\"WineD3D\"}];" \
+    "{data:\"wined3d\",label:\"WineD3D\"}].filter(v=>!fr||v.data!==\"d3dmetal\");" \
     "if(t.unAppID<2147483648&&(t.vecPlatforms||[]).indexOf(\"osx\")>=0" \
     "&&!t.strCompatToolName)return null;" \
     "return(0," RT ".jsx)(\"div\",{className:\"MSCXPanel\",children:(0," RT ".jsxs)(" RT ".Fragment,{children:[" \
@@ -210,13 +228,13 @@ static int out_expand(np_out_t *o, const char *replace, const np_cap_t *caps) {
     "(0," RT ".jsxs)(" BARREL ".XY,{label:\"Graphics\",children:[" \
     "(0," RT ".jsx)(" BARREL ".m,{rgOptions:B,selectedOption:b," \
     "onChange:v=>s([[\"CX_GRAPHICS_BACKEND\",v.data]]" \
-    ".concat(\"\"===v.data||\"d3dmetal\"===v.data?[]:[[\"D3DM_ENABLE_METALFX\",\"\"]])" \
+    ".concat(!fr&&(\"\"===v.data||\"d3dmetal\"===v.data)?[]:[[\"D3DM_ENABLE_METALFX\",\"\"]])" \
     ".concat(\"\"===v.data||\"dxmt\"===v.data?[]:" \
     "[[\"DXMT_METALFX_SPATIAL_SWAPCHAIN\",\"\"],[\"DXMT_CONFIG\",fx(\"\")]])" \
     ".concat(\"dxmt\"===v.data?[]:[[\"DXMT_ENABLE_NVEXT\",\"\"]]))})," \
     "T([\"MTL_HUD_ENABLED\"],\"Metal HUD\",\"1\")," \
     "dm&&T([\"D3DM_ENABLE_METALFX\"],\"DLSS\",\"1\")," \
-    "\"dxmt\"===b&&T([\"DXMT_ENABLE_NVEXT\"],\"DLSS\",\"1\")," \
+    "(\"dxmt\"===b||(fr&&\"\"===b))&&T([\"DXMT_ENABLE_NVEXT\"],\"DLSS\",\"1\")," \
     "T([\"ROSETTA_ADVERTISE_AVX\"],\"Advertise AVX2 to Rosetta\",\"1\",\"0\")," \
     "T([\"WINEMSYNC\"],\"MSync\",\"1\",\"0\")," \
     "T([\"NOTPROTON_RETINA\"],\"High Resolution\",\"1\",\"0\")" \

@@ -255,6 +255,11 @@ static void tool_list_cases(void) {
     check(strcmp(g_tools[2].build, "26.3.0.39832") == 0
           && strcmp(g_tools[2].dir, "/tools/notproton-26.3") == 0,
           "each tool carries its build and directory");
+    check(strcmp(np_compat_tool_build("notproton"), "27.0.0.40921-fex") == 0
+          && strcmp(np_compat_tool_build("notproton-26.3"), "26.3.0.39832") == 0,
+          "build lookup distinguishes the legacy alias from another installed tool");
+    check(np_compat_tool_build(NULL) == NULL && np_compat_tool_build("absent") == NULL,
+          "an unknown tool carries no invented build identity");
 
     tool_entry_t free_tool;
     char free_line[] = "notproton-sikarugir\tsikarugir-11.0_1\trosetta\tSikarugir 11.0 revision 1";

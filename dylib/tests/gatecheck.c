@@ -269,6 +269,16 @@ int main(int argc, char **argv) {
             check_output(out, out_len);
             printf("APPLIED  %s\n", argv[i]);
             free(out);
+            np_webpatch_set_legacy_free(1);
+            out = np_webpatch_transform(buf, len, &out_len, NULL);
+            if (!out) wrong("free legacy metadata rejected %s", argv[i]);
+            else {
+                check_output(out, out_len);
+                if (!strstr(out, "tn===\"notproton\"&&true"))
+                    wrong("free legacy metadata did not reach the options panel");
+                free(out);
+            }
+            np_webpatch_set_legacy_free(0);
         } else {
             printf("REJECTED %s\n", argv[i]);
         }

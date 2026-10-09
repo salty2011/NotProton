@@ -1181,6 +1181,8 @@ bundle_name=$(printf '%s' "$game_name" | tr -d '/:"`$\\')
 game_name_xml=$(printf '%s' "$game_name" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g')
 loader_root="$HOME/Library/Application Support/notproton/launchers/$app_id"
 mkdir -p "$loader_root"
+# LaunchServices reports whether the bundle ran, not Wine's process status.
+rm -f "$loader_root/notproton-launch-status"
 loader_app="$loader_root/$bundle_name.app"
 rm -rf "$loader_root"/*.app
 loader_contents="$loader_app/Contents"
@@ -1342,7 +1344,14 @@ if [ -n "\$STEAM_DYLD_INSERT_LIBRARIES" ]; then
 fi
 [ -n "\$NOTPROTON_GAME_CWD" ] && cd "\$NOTPROTON_GAME_CWD"
 "$WINELOADER" "\$@"
-exit \$?
+wine_status=\$?
+# Wine can return zero after an unhandled Windows exception. Ordinary err:
+# diagnostics are not fatal and must not change the result.
+if [ "\$wine_status" -eq 0 ] && grep -q '^wine: Unhandled ' "\$wine_log"; then
+  wine_status=70
+fi
+printf '%s\\n' "\$wine_status" > "$loader_root/notproton-launch-status"
+exit "\$wine_status"
 LAUNCHER
 chmod +x "$loader_macos/launcher"
 
@@ -1466,7 +1475,22 @@ while :; do
   fi
   sleep 1
 done
+if [ -r "$loader_root/notproton-launch-status" ]; then
+  wine_status=$(cat "$loader_root/notproton-launch-status")
+  case "$wine_status" in
+    ''|*[!0-9]*) ;;
+    *)
+      if [ "$wine_status" -le 255 ]; then
+        echo "=== Wine launcher exited status=$wine_status ===" >> "$log" 2>&1 || true
+        [ "$status" -ne 0 ] || status=$wine_status
+      fi
+      ;;
+  esac
+fi
 echo "=== game exited status=$status, killing wine prefix ===" >> "$log" 2>&1 || true
 kill_wine_prefix
 echo "=== wine prefix killed, session ending ===" >> "$log" 2>&1 || true
-exit $status
+if [ "$status" -ne 0 ] && [ "$status" -le 128 ]; then
+  show_alert "Game launch failed" "A Windows process ended unexpectedly while running $(alert_safe "$game_name"). Exit status: $status. The game log is $(alert_safe "$loader_root/notproton-wine.log")."
+fi
+exit "$status"

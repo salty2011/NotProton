@@ -280,7 +280,10 @@ struct PrefixToolsTests {
         #expect(gate.upperBound < alert.lowerBound)
         #expect(source.ranges(of: "osascript").count == 1, "an alert bypasses show_alert")
 
-        let calls = source.ranges(of: "  show_alert \"")
+        // Refusals stop before a game bundle is launched. Post-launch failure
+        // reporting preserves Wine's exit code instead of returning refusal code 1.
+        let launch = try #require(source.range(of: "open -n -W -a \"$loader_app\""))
+        let calls = source[..<launch.lowerBound].ranges(of: "  show_alert \"")
         #expect(!calls.isEmpty)
         for call in calls {
             let rest = source[call.upperBound...]

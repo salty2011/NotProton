@@ -11,6 +11,9 @@ int np_webpatch_should_patch(const char *path);
 // letters, digits, '_', '$', '.' and '-' are dropped.
 void np_webpatch_set_fallback_tool(const char *name);
 
+// Whether the installed legacy 'notproton' alias belongs to the free runner.
+void np_webpatch_set_legacy_free(int enabled);
+
 // The compat UIs, named so a caller can compare against the table rather than a literal
 // of its own that a rename would leave behind. forcetool calls SpecifyCompatTool straight
 // out; selecttool reads its list from the CompatManager routes.

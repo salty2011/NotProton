@@ -25,8 +25,10 @@ const FORMS = {
   statement: { arg: 'statement', react: 'R0', barrel: 'B0' },
 };
 
-function panel(emit, form) {
-  const raw = execFileSync(emit, [form], { encoding: 'utf8' }).trim();
+function panel(emit, form, config = {}) {
+  const raw = execFileSync(emit, [form], { encoding: 'utf8' }).trim()
+    .replace(/\u0011/g, config.defaultTool || 'notproton')
+    .replace(/\u0012/g, config.legacyFree ? 'true' : 'false');
   const src = form === 'component'
     ? 'var ' + raw.replace(/,$/, '')
     : expand(raw).replace(/;$/, '');

@@ -120,6 +120,10 @@ void *np_compat_registered_tool(void *compat_mgr);
 // Name of the first tool in the app's list, which unmapped Windows games run under.
 const char *np_compat_fallback_tool_name(void);
 
+// Build identity from the installed tool list, including the legacy alias.
+// NULL means that the tool is not in that list.
+const char *np_compat_tool_build(const char *name);
+
 uint32_t np_compat_manager_tools_max(void);
 
 // Absolute path to the directory of the first tool in the app's list, or NULL.

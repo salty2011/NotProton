@@ -11,6 +11,25 @@ struct SikarugirLauncherTests {
         #expect(log.contains("DYLD_DEPENDENCY_OK"))
     }
 
+    @Test("A fatal Wine exception is reported even when the Wine process exits zero")
+    func fatalExceptionStatus() throws {
+        let log = try runLauncher(["NP_TEST_FATAL": "1"], expectedStatus: 70)
+        #expect(log.contains("wine: Unhandled illegal instruction"))
+        #expect(log.contains("NP_LAUNCH_STATUS 70"))
+    }
+
+    @Test("Ordinary Wine diagnostics do not turn a successful launch into a crash")
+    func ordinaryDiagnosticStatus() throws {
+        let log = try runLauncher(["NP_TEST_NOISE": "1"])
+        #expect(log.contains("NP_LAUNCH_STATUS 0"))
+    }
+
+    @Test("A nonzero Wine exit is preserved independently of LaunchServices")
+    func nonzeroStatus() throws {
+        let log = try runLauncher(["NP_TEST_EXIT": "23"], expectedStatus: 23)
+        #expect(log.contains("NP_LAUNCH_STATUS 23"))
+    }
+
     @Test("AoE's adapter workaround is scoped to DXMT and preserves launch options")
     func adapterProfile() throws {
         let custom = "d3d11.preferredMaxFrameRate=60"
@@ -34,7 +53,7 @@ struct SikarugirLauncherTests {
         #expect(other.contains("NP_DXVK_FILE \n"))
     }
 
-    private func runLauncher(_ extraEnvironment: [String: String] = [:]) throws -> String {
+    private func runLauncher(_ extraEnvironment: [String: String] = [:], expectedStatus: Int32 = 0) throws -> String {
         let fm = FileManager.default
         let root = fm.temporaryDirectory.appending(path: "np-launcher-\(UUID().uuidString)")
         defer { try? fm.removeItem(at: root) }
@@ -60,6 +79,8 @@ struct SikarugirLauncherTests {
                     puts("DYLD_DEPENDENCY_MISSING"); return 41;
                 }
                 puts("DYLD_DEPENDENCY_OK");
+                if (getenv("NP_TEST_FATAL")) puts("wine: Unhandled illegal instruction at address 00000001420B3880 (thread 011c), starting debugger...");
+                if (getenv("NP_TEST_NOISE")) puts("002c:err:virtual:try_map_free_area mmap() error Cannot allocate memory");
                 printf("NP_PROFILE %s\\n", getenv("DXMT_CONFIG") ? getenv("DXMT_CONFIG") : "");
                 const char *config = getenv("DXVK_CONFIG_FILE");
                 printf("NP_DXVK_FILE %s\\n", config ? config : "");
@@ -67,7 +88,7 @@ struct SikarugirLauncherTests {
                     FILE *file = fopen(config + 2, "r");
                     if (file) { int c; while ((c = fgetc(file)) != EOF) putchar(c); fclose(file); }
                 }
-                return 0;
+                return getenv("NP_TEST_EXIT") ? atoi(getenv("NP_TEST_EXIT")) : 0;
             }
             """.utf8).write(to: probeSource)
         let probe = root.appending(path: "wine-probe")
@@ -98,7 +119,8 @@ struct SikarugirLauncherTests {
         // /bin/sh is protected by SIP and removes DYLD_* before it executes the script.
         let result = try Shell.run("/bin/sh", [script.path], environment: environment)
         let log = try String(contentsOf: root.appending(path: "notproton-wine.log"), encoding: .utf8)
-        #expect(result.status == 0, Comment(rawValue: log))
-        return log
+        #expect(result.status == expectedStatus, Comment(rawValue: log))
+        let status = (try? String(contentsOf: root.appending(path: "notproton-launch-status"), encoding: .utf8)) ?? "missing"
+        return log + "\nNP_LAUNCH_STATUS \(status.trimmingCharacters(in: .whitespacesAndNewlines))\n"
     }
 }
