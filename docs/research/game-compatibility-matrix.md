@@ -12,7 +12,7 @@ remain pending.
 | Game | Prerequisites / launch | Menu | Gameplay | Media | Longer session / remaining coverage |
 | --- | --- | --- | --- | --- | --- |
 | Age of Empires: Definitive Edition, 1017900 | Previously passed | Previously passed after scoped adapter profile | User confirmed playable with normal audio | Startup video and audio stutter; unresolved | Long sessions, network, controllers and overlay not comprehensively qualified; retest after engine changes |
-| Age of Empires — packaged source runtime revision 2 | Steam dependency preparation completed; backed-up prefix migration succeeded | One DXVK/profile-disabled replay reached the menu; the installed profile-v2 replay stayed completely black without a warning | Pending on this revision | Pending; no media patch promoted | Source runtimes receive no automatic adapter profile, but reliable startup remains unresolved; repeat comparison pending |
+| Age of Empires — packaged source runtime revision 2 | Steam dependency preparation completed; backed-up prefix migration succeeded | One DXVK/profile-disabled replay reached the menu; subsequent installed-fix replays stayed black both with and without the disable marker | Pending on this revision | Pending; no media patch promoted | Reliable startup unresolved; original Sikarugir prefix and selection restored for a baseline comparison, revision 2 prefix retained |
 | Fallout 76, 1151340 — installed Sikarugir | Dependency helper ran; completion is not fully qualified. Main executable reproducibly crashes at startup | Failed before menu in the controlled replay | Pending | Pending | Pending |
 | Fallout 76 — managed experimental source runtime | User confirmed successful Steam launch after prefix rebuild; original crash removed by verified namespace fix | User confirmed reaching gameplay | User confirmed login and entering gameplay | Pending | Basic login/network path passed in user testing; longer sessions, save/reload, controllers and overlay remain pending |
 | Quake II, 2320 | User reports launch reaches a level; exact runtime, renderer and edition/executable for this replay are not confirmed | Not separately assessed | Blocked: HUD is visible, but the game world is black | Not assessed | Rendering defect unresolved; reaching a level does not establish playable gameplay |
@@ -34,10 +34,14 @@ and receive no automatic adapter spoofing. Generated-launcher regression tests
 cover both source-runtime revisions and both graphics paths; Steam panel tests
 cover explicit and inherited runtime selection. The installed helper also
 returns no profile defaults for the actual AoE executable on revision 2/DXVK.
-A fresh comparison with the local profile-disable marker restored is pending
-human review. Both successful and failed runs contain unsupported swapchain
-buffer diagnostics; their presence alone does not identify the cause. Reaching
-the menu does not establish gameplay, smooth startup media or session stability.
+A fresh comparison with the local profile-disable marker restored also stayed
+black in human review. The reported dialog is NotProton's generic launch-failure
+alert with exit status 1; no Wine exception trace was captured, and stopping a
+stuck replay can also trigger that alert. Both successful and failed runs contain
+unsupported swapchain buffer diagnostics; their presence alone does not identify
+the cause. The original Sikarugir prefix and selection have been restored for a
+baseline comparison, retaining revision 2 as another backup. Reaching the menu
+does not establish gameplay, smooth startup media or session stability.
 
 ## Quake II rendering report
 
