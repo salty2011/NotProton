@@ -3,15 +3,25 @@
   "profiles": [
     {
       "id": "aoe-de-adapter",
-      "revision": 1,
+      "revision": 2,
       "appID": "1017900",
       "executable": "AoEDE_s.exe",
-      "runtimes": ["sikarugir-11.0_1", "freewine-26.3_1", "freewine-26.3_2"],
-      "renderers": ["dxmt", "dxvk"],
-      "architectures": ["x86_64"],
-      "defaults": {"dxgi.customVendorId": "1002", "dxgi.customDeviceId": "7340"},
-      "rationale": "AoE DE rejects the Apple adapter identity despite a working D3D11 device. Supply the previously tested AMD adapter defaults only when the user has not supplied that key.",
-      "evidence": "docs/research/game-compatibility-matrix.md; user-confirmed Sikarugir DXMT/DXVK menu and gameplay; carried existing free-runtime workaround",
+      "runtimes": [
+        "sikarugir-11.0_1"
+      ],
+      "renderers": [
+        "dxmt",
+        "dxvk"
+      ],
+      "architectures": [
+        "x86_64"
+      ],
+      "defaults": {
+        "dxgi.customVendorId": "1002",
+        "dxgi.customDeviceId": "7340"
+      },
+      "rationale": "On Sikarugir 11.0 revision 1, AoE DE rejects the Apple adapter identity despite a working D3D11 device. Supply the tested AMD adapter defaults only for this runtime and only when the user has not supplied that key.",
+      "evidence": "docs/research/game-compatibility-matrix.md; user-confirmed Sikarugir DXMT/DXVK menu and gameplay. Source runtime revision 2 stays black with this profile and reaches the menu with it disabled; source runtimes are excluded.",
       "recipes": []
     }
   ],

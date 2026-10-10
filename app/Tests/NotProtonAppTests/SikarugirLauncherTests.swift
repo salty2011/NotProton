@@ -64,13 +64,28 @@ struct SikarugirLauncherTests {
         #expect(applied.contains(custom))
         #expect(applied.contains("dxgi.customDeviceId=7340"))
         #expect(!applied.contains("dxgi.customVendorId=1002"))
-        #expect(applied.contains("profile=aoe-de-adapter revision=1"))
+        #expect(applied.contains("profile=aoe-de-adapter revision=2"))
         for control in [["NOTPROTON_DISABLE_PROFILES": "1"], ["NP_TEST_TARGET": "vcredist.exe"], ["NP_TEST_RUNTIME": "freewine-unknown"], ["NP_TEST_ARCH": "i386"]] {
             let env = ["SteamAppId": "1017900", "WINEDLLPATH_DXMT": "/dxmt", "DXMT_CONFIG": custom].merging(control) { _, new in new }
             let unchanged = try runLauncher(env)
             #expect(unchanged.contains("NP_PROFILE \(custom)\n"))
             #expect(!unchanged.contains("dxgi.customDeviceId=7340"))
         }
+    }
+
+    @Test("The source runtimes do not inherit Sikarugir's adapter workaround",
+          arguments: ["freewine-26.3_1", "freewine-26.3_2"], ["dxmt", "dxvk"])
+    func sourceRuntimeProfile(runtime: String, renderer: String) throws {
+        let original = "user.option=True"
+        let environment = ["SteamAppId": "1017900", "NP_TEST_RUNTIME": runtime,
+            "WINEDLLPATH_\(renderer.uppercased())": "/\(renderer)", "DXMT_CONFIG": original,
+            "NP_TEST_USER_CONFIG": "user.keep = True\n"]
+        let log = try runLauncher(environment)
+        #expect(!log.contains("profile=aoe-de-adapter"))
+        #expect(!log.contains("dxgi.customVendorId"))
+        #expect(!log.contains("dxgi.customDeviceId"))
+        #expect(log.contains("NP_PROFILE \(original)\n"))
+        #expect(log.contains("user.keep = True"))
     }
 
     private func runLauncher(_ extraEnvironment: [String: String] = [:], expectedStatus: Int32 = 0) throws -> String {

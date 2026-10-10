@@ -341,7 +341,9 @@ struct PrefixesView: View {
                         }
                     }
                 }
-                ForEach(GameProfiles.all.filter { $0.appID == prefix.appID }, id: \.id) { profile in
+                ForEach(GameProfiles.all.filter {
+                    $0.appID == prefix.appID && $0.runtimes.contains(PrefixTools.lastBuild(of: prefix)?.build ?? "")
+                }, id: \.id) { profile in
                     Menu("Game Profile: \(profile.id) v\(profile.revision)") {
                         Text(profile.rationale)
                         Button(GameProfiles.disabled(in: prefix.root) ? "Enable Local Profile" : "Disable Local Profile") {

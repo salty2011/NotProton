@@ -12,10 +12,27 @@ remain pending.
 | Game | Prerequisites / launch | Menu | Gameplay | Media | Longer session / remaining coverage |
 | --- | --- | --- | --- | --- | --- |
 | Age of Empires: Definitive Edition, 1017900 | Previously passed | Previously passed after scoped adapter profile | User confirmed playable with normal audio | Startup video and audio stutter; unresolved | Long sessions, network, controllers and overlay not comprehensively qualified; retest after engine changes |
-| Age of Empires — packaged source runtime revision 2 | Steam dependency preparation completed; game process started with the scoped adapter profile and DXMT | Failed review: user reports a black screen or another launch problem | Unqualified on this revision | Unqualified; no media patch promoted | Original prefix retained by the backed-up migration; controlled diagnosis and repeat-launch qualification required |
+| Age of Empires — packaged source runtime revision 2 | Steam dependency preparation completed; backed-up prefix migration succeeded | User confirms menu with DXVK and the adapter profile disabled; enabling the profile stays black with DXMT and DXVK | Pending on this revision | Pending; no media patch promoted | Profile v2 excludes the source runtimes; installed-fix repeat launch and gameplay qualification pending |
 | Fallout 76, 1151340 — installed Sikarugir | Dependency helper ran; completion is not fully qualified. Main executable reproducibly crashes at startup | Failed before menu in the controlled replay | Pending | Pending | Pending |
 | Fallout 76 — managed experimental source runtime | User confirmed successful Steam launch after prefix rebuild; original crash removed by verified namespace fix | User confirmed reaching gameplay | User confirmed login and entering gameplay | Pending | Basic login/network path passed in user testing; longer sessions, save/reload, controllers and overlay remain pending |
 | Quake II, 2320 | User reports launch reaches a level; exact runtime, renderer and edition/executable for this replay are not confirmed | Not separately assessed | Blocked: HUD is visible, but the game world is black | Not assessed | Rendering defect unresolved; reaching a level does not establish playable gameplay |
+
+## AoE adapter profile regression
+
+On 10 October 2026, two revision 2/DXMT replays stayed completely black. Changing
+only the renderer to DXVK left the same symptom. Keeping DXVK, the same runtime
+and rebuilt prefix, then disabling only the adapter profile reached the menu in
+user review. This identifies the automatically applied profile as a contributor
+to this startup failure; it does not establish the underlying graphics defect.
+
+The profile had extended adapter IDs tested on Sikarugir to both source runtimes
+without game qualification. Profile v2 restricts those defaults to
+`sikarugir-11.0_1`. Source runtimes retain the player's explicit renderer settings
+and receive no automatic adapter spoofing. Generated-launcher regression tests
+cover both source-runtime revisions and both graphics paths; Steam panel tests
+cover explicit and inherited runtime selection. The installed fix still needs a
+repeat launch without the temporary local profile-disable control. Reaching the
+menu does not establish gameplay, smooth startup media or session stability.
 
 ## Quake II rendering report
 

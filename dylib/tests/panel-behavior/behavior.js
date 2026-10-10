@@ -133,12 +133,12 @@ for (const form of Object.keys(FORMS)) {
     }
   }
 
-  for (const tool of ['notproton-sikarugir', 'notproton-freewine', 'notproton-freewine-26.3_2']) {
+  for (const tool of ['notproton-sikarugir']) {
     const { render, written: changes } = panel(emit, form);
     const original = "DXMT_CONFIG='dxgi.customVendorId=10de;user.option=True' FOO=keep wrapper %command% --user-arg";
     const props = { unAppID: 1017900, strCompatToolName: tool };
     const ns = walk(render({ details: details(original, props) }));
-    const profile = ns.find(x => x.type === 'Section' && x.props.label === 'Game profile: aoe-de-adapter v1');
+    const profile = ns.find(x => x.type === 'Section' && x.props.label === 'Game profile: aoe-de-adapter v2');
     t.ok(profile, tool + ' displays the versioned matching profile');
     ns.find(x => x.props.label === "Disable this game's profile").props.onChange(true);
     t.ok(changes.at(-1).opts.includes('NOTPROTON_DISABLE_PROFILES=1') && changes.at(-1).opts.includes(original),
@@ -152,7 +152,17 @@ for (const form of Object.keys(FORMS)) {
            'unknown game or runtime receives no profile');
     }
     const unsupported = walk(render({ details: details('CX_GRAPHICS_BACKEND=wined3d ' + original, props) }));
-    t.ok(!unsupported.some(x => x.props.label === 'Game profile: aoe-de-adapter v1'), 'unmatched renderer receives no profile');
+    t.ok(!unsupported.some(x => x.props.label === 'Game profile: aoe-de-adapter v2'), 'unmatched renderer receives no profile');
+  }
+
+  for (const tool of ['notproton-freewine', 'notproton-freewine-26.3_2']) {
+    for (const config of [{}, { defaultTool: tool }]) {
+      const { render } = panel(emit, form, config);
+      const props = { unAppID: 1017900, strCompatToolName: config.defaultTool ? '' : tool };
+      const ns = walk(render({ details: details('CX_GRAPHICS_BACKEND=dxvk %command%', props) }));
+      t.ok(!ns.some(x => x.type === 'Section' && String(x.props.label).startsWith('Game profile:')),
+           tool + ' does not offer the unqualified Sikarugir adapter profile, including inherited selection');
+    }
   }
 
   failed += t.failed;
