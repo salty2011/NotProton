@@ -27,6 +27,8 @@ parity. FEX and free D3D12 remain outside this release.
 - **Profiles:** `runtime/game-profiles.json` generates app/helper/Steam metadata.
   The AoE adapter profile matches Steam ID, executable, actual PE architecture,
   runtime and renderer. Explicit settings win per key; unrelated config survives.
+  Profile v2 is limited to the qualified Sikarugir runtime: applying it to source
+  revision 2 caused black startup on DXMT and DXVK; disabling it restored the menu.
   Profiles can be disabled/reset per game. Fallout's namespace fix stays in Wine.
 - **Dependency preparation:** The stopped-prefix operation checks actual modules,
   retains a backup, runs an approved pinned method, verifies the postcondition and
@@ -36,7 +38,8 @@ parity. FEX and free D3D12 remain outside this release.
 
 ## Validation and limits
 
-The final Swift suite passed 512 tests in 62 suites. An additional real-archive
+The latest Swift suite passed 513 tests in 62 suites, including source-runtime
+adapter-profile exclusion through the generated launcher. An additional real-archive
 qualification passed 83 focused tests, including dependency-loss health detection.
 Eleven Python package tests, shell/native panel and launch checks, generated-policy
 checks and workflow lint passed. The signed app built successfully.
