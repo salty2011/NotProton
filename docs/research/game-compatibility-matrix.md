@@ -11,7 +11,7 @@ remain pending.
 
 | Game | Prerequisites / launch | Menu | Gameplay | Media | Longer session / remaining coverage |
 | --- | --- | --- | --- | --- | --- |
-| Age of Empires: Definitive Edition, 1017900 | Previously passed | Previously passed after scoped adapter profile | User confirmed playable with normal audio | Startup video and audio stutter; unresolved | Long sessions, network, controllers and overlay not comprehensively qualified; retest after engine changes |
+| Age of Empires: Definitive Edition, 1017900 — Sikarugir 11.0 revision 1, DXVK | Restored original prefix and runtime selection successfully | User confirmed menu on the installed profile-v2 build | User entered a level and reported good performance | Previous startup video/audio stutter remains unresolved; smooth media not established by this replay | Repeat gameplay passed after rollback; long sessions, network, controllers and overlay not comprehensively qualified |
 | Age of Empires — packaged source runtime revision 2 | Steam dependency preparation completed; backed-up prefix migration succeeded | One DXVK/profile-disabled replay reached the menu; subsequent installed-fix replays stayed black both with and without the disable marker | Pending on this revision | Pending; no media patch promoted | Reliable startup unresolved; original Sikarugir prefix and selection restored for a baseline comparison, revision 2 prefix retained |
 | Fallout 76, 1151340 — installed Sikarugir | Dependency helper ran; completion is not fully qualified. Main executable reproducibly crashes at startup | Failed before menu in the controlled replay | Pending | Pending | Pending |
 | Fallout 76 — managed experimental source runtime | User confirmed successful Steam launch after prefix rebuild; original crash removed by verified namespace fix | User confirmed reaching gameplay | User confirmed login and entering gameplay | Pending | Basic login/network path passed in user testing; longer sessions, save/reload, controllers and overlay remain pending |
@@ -39,9 +39,14 @@ black in human review. The reported dialog is NotProton's generic launch-failure
 alert with exit status 1; no Wine exception trace was captured, and stopping a
 stuck replay can also trigger that alert. Both successful and failed runs contain
 unsupported swapchain buffer diagnostics; their presence alone does not identify
-the cause. The original Sikarugir prefix and selection have been restored for a
-baseline comparison, retaining revision 2 as another backup. Reaching the menu
-does not establish gameplay, smooth startup media or session stability.
+the cause. The original Sikarugir prefix and selection were restored through the
+installed app, retaining revision 2 as another backup. The user confirmed that
+this restored setup reaches the menu, enters a level and performs well with DXVK
+and profile v2. This establishes a working fallback and verifies the restore in
+actual game use; it does not isolate the runtime, prefix or profile as the cause
+of revision 2's failure. The selected DXVK DLLs are identical in both runtimes;
+Wine/Media Foundation binaries differ. Their hashes alone do not identify a
+defective component. Startup media and longer-session qualification remain open.
 
 ## Quake II rendering report
 

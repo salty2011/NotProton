@@ -27,8 +27,10 @@ parity. FEX and free D3D12 remain outside this release.
 - **Profiles:** `runtime/game-profiles.json` generates app/helper/Steam metadata.
   The AoE adapter profile matches Steam ID, executable, actual PE architecture,
   runtime and renderer. Explicit settings win per key; unrelated config survives.
-  Profile v2 is limited to the qualified Sikarugir runtime: applying it to source
-  revision 2 caused black startup on DXMT and DXVK; disabling it restored the menu.
+  Profile v2 is limited to the qualified Sikarugir runtime. Source revision 2 still
+  fails AoE startup without the profile; a single earlier menu result with profiles
+  disabled was not reproducible. Restoring the original Sikarugir prefix and runtime
+  passed user-confirmed menu and level gameplay on the installed profile-v2 build.
   Profiles can be disabled/reset per game. Fallout's namespace fix stays in Wine.
 - **Dependency preparation:** The stopped-prefix operation checks actual modules,
   retains a backup, runs an approved pinned method, verifies the postcondition and
